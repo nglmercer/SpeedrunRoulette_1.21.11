@@ -62,6 +62,12 @@ public class Config {
     public static final IntValue HUD_OFFSET_X;
     public static final IntValue HUD_OFFSET_Y;
 
+    // End Screen Configs
+    public static final BooleanValue END_SHOW_STATS;
+    public static final BooleanValue END_SHOW_SPLITS;
+    public static final BooleanValue END_SHOW_ICON;
+    public static final DoubleValue END_BG_OPACITY;
+
     static {
         LOG_DIRT_BLOCK = new BooleanValue("logDirtBlock", true);
         MAGIC_NUMBER = new IntValue("magicNumber", 42);
@@ -95,6 +101,11 @@ public class Config {
         HUD_COMPLETED_COLOR = new StringValue("hudCompletedColor", "#FF55FF55");
         HUD_OFFSET_X = new IntValue("hudOffsetX", 0);
         HUD_OFFSET_Y = new IntValue("hudOffsetY", 0);
+
+        END_SHOW_STATS = new BooleanValue("endShowStats", true);
+        END_SHOW_SPLITS = new BooleanValue("endShowSplits", true);
+        END_SHOW_ICON = new BooleanValue("endShowIcon", true);
+        END_BG_OPACITY = new DoubleValue("endBgOpacity", 0.67);
     }
 
     public static final Spec SPEC = new Spec();

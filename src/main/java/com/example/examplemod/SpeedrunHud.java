@@ -40,6 +40,9 @@ public class SpeedrunHud {
             net.minecraft.client.gui.Font font = Minecraft.getInstance().font;
             if (font == null) return;
 
+            boolean showObj = Config.HUD_SHOW_OBJECTIVES.get();
+            boolean showStats = Config.HUD_SHOW_STATS.get();
+
             String timeStr = "00:42.000";
             String statsStr = Component.translatable("gui.examplemod.deaths_label").getString() + " 5 | " +
                 Component.translatable("gui.examplemod.distance_label").getString() + " 1234m | " +
@@ -47,17 +50,14 @@ public class SpeedrunHud {
 
             List<Objective> dummyObjectives = new ArrayList<>();
             try {
-                net.minecraft.world.item.Item iron = net.minecraft.world.item.Items.IRON_INGOT;
-                net.minecraft.world.item.Item dirt = net.minecraft.world.item.Items.DIRT;
-                net.minecraft.world.item.Item emerald = net.minecraft.world.item.Items.EMERALD;
-                dummyObjectives.add(new Objective("preview_item", Component.translatable("gui.examplemod.preview_iron_ingot"), new net.minecraft.world.item.ItemStack(iron), Objective.Type.ITEM));
-                dummyObjectives.add(new Objective("preview_block", Component.translatable("gui.examplemod.preview_dirt_block"), new net.minecraft.world.item.ItemStack(dirt), Objective.Type.BLOCK));
-                dummyObjectives.add(new Objective("preview_gem", Component.translatable("gui.examplemod.preview_emerald"), new net.minecraft.world.item.ItemStack(emerald), Objective.Type.ITEM));
+                dummyObjectives.add(new Objective("preview_item", Component.translatable("gui.examplemod.preview_iron_ingot"), new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_INGOT), Objective.Type.ITEM));
+                dummyObjectives.add(new Objective("preview_block", Component.translatable("gui.examplemod.preview_dirt_block"), new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIRT), Objective.Type.BLOCK));
+                dummyObjectives.add(new Objective("preview_gem", Component.translatable("gui.examplemod.preview_emerald"), new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.EMERALD), Objective.Type.ITEM));
             } catch (Throwable t) {
                 dummyObjectives.add(new Objective("preview_error", Component.translatable("gui.examplemod.preview_error"), net.minecraft.world.item.ItemStack.EMPTY, Objective.Type.ITEM));
             }
 
-            renderHud(g, font, width, 300, margin, true, true, timeStr, statsStr, dummyObjectives, true, false);
+            renderHud(g, font, width, 300, margin, showObj, showStats, timeStr, statsStr, dummyObjectives, true, false);
         } catch (Exception e) {
             System.err.println("Error rendering HUD preview: " + e.getMessage());
         }

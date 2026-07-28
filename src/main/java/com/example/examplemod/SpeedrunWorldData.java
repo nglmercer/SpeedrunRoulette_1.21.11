@@ -8,6 +8,7 @@ import net.minecraft.core.HolderLookup;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
 import java.util.Optional;
 import net.minecraft.world.level.saveddata.SavedDataType;
 import com.mojang.serialization.Codec;
@@ -74,10 +75,12 @@ public class SpeedrunWorldData extends SavedData {
                             data.objectives.add(Objective.load(objTag, provider));
                         }
                     } catch (Throwable e) {
+                        SpeedrunRoulette.LOGGER.error("[WorldData] Failed to load objective at index {}", i, e);
                     }
                 }
             }
         }
+        SpeedrunRoulette.LOGGER.info("[WorldData] Loaded {} objectives from disk", data.objectives.size());
         if (tag.contains("runInfoVictory")) {
             data.runInfoVictory = tag.getBoolean("runInfoVictory").orElse(false);
         }
@@ -106,19 +109,11 @@ public class SpeedrunWorldData extends SavedData {
     }
 
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
-        ListTag list = new ListTag();
-        for (Objective obj : objectives) {
-            list.add(obj.save(provider));
-        }
-        tag.put("objectives", list);
-        tag.putBoolean("runInfoVictory", runInfoVictory);
-        tag.putString("runInfoTime", runInfoTime);
-        tag.putString("runInfoObjective", runInfoObjective);
-        tag.putString("gameMode", gameMode.name());
-        tag.putBoolean("runFinished", runFinished);
-        tag.putString("winnerName", winnerName);
-        tag.putString("winnerUuid", winnerUuid);
-        tag.putString("finishTime", finishTime);
+        CODEC.encodeStart(NbtOps.INSTANCE, this).result().ifPresent(encoded -> {
+            if (encoded instanceof CompoundTag ct) {
+                tag.merge(ct);
+            }
+        });
         return tag;
     }
     

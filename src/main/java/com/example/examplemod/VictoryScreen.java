@@ -55,25 +55,20 @@ public class VictoryScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        // 1. Background
         this.renderTransparentBackground(g);
-        g.fill(0, 0, this.width, this.height, 0xAA000000); // Darken background
+        int bgAlpha = (int)(Config.END_BG_OPACITY.get() * 255) & 0xFF;
+        g.fill(0, 0, this.width, this.height, (bgAlpha << 24));
 
-        // 2. Render Buttons (via super)
         super.render(g, mouseX, mouseY, partialTick);
 
-        // 3. Render Victory Content
         int centerX = this.width / 2;
         int currentY = 20;
 
-        // Title
         g.drawCenteredString(this.font, Component.translatable("gui.examplemod.victory_title").withStyle(net.minecraft.ChatFormatting.BOLD, net.minecraft.ChatFormatting.GOLD), centerX, currentY, 0xFFD700);
         currentY += 18;
 
-        // Multiplayer mode + winner banner
         SpeedrunGameMode mode = SpeedrunState.getActiveGameMode();
         g.drawCenteredString(this.font, mode.displayName(), centerX, currentY, 0xFF55FFFF);
-        //.withStyle(net.minecraft.ChatFormatting.AQUA)
         currentY += 14;
         String winner = SpeedrunState.getLastWinnerName();
         if (winner != null && !winner.isEmpty()) {
@@ -84,7 +79,6 @@ public class VictoryScreen extends Screen {
         }
         currentY += 5;
 
-        // Retrieve Objective Data
         java.util.List<Objective> objs = SpeedrunState.getObjectives();
         net.minecraft.world.item.ItemStack icon = net.minecraft.world.item.ItemStack.EMPTY;
         Component objNameComp = Component.translatable("gui.examplemod.unknown_objective");
@@ -101,31 +95,23 @@ public class VictoryScreen extends Screen {
             objNameComp = Component.literal(SpeedrunRoulette.pendingVictoryObjectiveName);
         }
 
-        // Render BIG Item Icon (Scale 4.0 = 64x64)
-        if (!icon.isEmpty()) {
+        if (Config.END_SHOW_ICON.get() && !icon.isEmpty()) {
             float scale = 4.0f;
-            // Manual Pose Stack (No push/pop available)
             g.pose().translate((float)centerX, (float)(currentY + 32));
             g.pose().scale(scale, scale);
             g.pose().translate(-8.0f, -8.0f);
-
             g.renderItem(icon, 0, 0);
-
-            // Reverse
             g.pose().translate(8.0f, 8.0f);
             g.pose().scale(1.0f/scale, 1.0f/scale);
             g.pose().translate(-(float)centerX, -(float)(currentY + 32));
-
-            currentY += 70; // 64 + padding
+            currentY += 70;
         } else {
             currentY += 10;
         }
 
-        // Render Objective Name (WHITE)
         g.drawCenteredString(this.font, objNameComp, centerX, currentY, 0xFFFFFFFF);
         currentY += 15;
 
-        // Render Time (GREEN)
         String time = SpeedrunRoulette.pendingVictoryTime;
         if (time == null) time = "--:--";
 
@@ -135,33 +121,30 @@ public class VictoryScreen extends Screen {
         g.drawCenteredString(this.font, time, 0, 0, 0xFF55FF55);
         g.pose().scale(1.0f/timeScale, 1.0f/timeScale);
         g.pose().translate(-(float)centerX, -(float)(currentY + 5));
-
         currentY += 30;
 
-        // Render Stats (Morts, Distance, Jours)
-        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.statistics").withStyle(net.minecraft.ChatFormatting.UNDERLINE), centerX, currentY, 0xFFAAAAAA);
-        currentY += 15;
+        if (Config.END_SHOW_STATS.get()) {
+            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.statistics").withStyle(net.minecraft.ChatFormatting.UNDERLINE), centerX, currentY, 0xFFAAAAAA);
+            currentY += 15;
+            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.deaths", SpeedrunState.getDeathCount()), centerX, currentY, 0xFFFFFFFF);
+            currentY += 12;
+            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.distance", (int)SpeedrunState.getTraveledMeters()), centerX, currentY, 0xFFFFFFFF);
+            currentY += 12;
+            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.days", SpeedrunState.getDaysPlayed()), centerX, currentY, 0xFFFFFFFF);
+            currentY += 12;
+        }
 
-        Component deathStr = Component.translatable("gui.examplemod.deaths", SpeedrunState.getDeathCount());
-        Component distStr = Component.translatable("gui.examplemod.distance", (int)SpeedrunState.getTraveledMeters());
-        Component daysStr = Component.translatable("gui.examplemod.days", SpeedrunState.getDaysPlayed());
-
-        g.drawCenteredString(this.font, deathStr, centerX, currentY, 0xFFFFFFFF);
-        currentY += 12;
-        g.drawCenteredString(this.font, distStr, centerX, currentY, 0xFFFFFFFF);
-        currentY += 12;
-        g.drawCenteredString(this.font, daysStr, centerX, currentY, 0xFFFFFFFF);
-
-        // Render Splits (Optional/Secondary)
-        currentY += 20;
-        java.util.Map<String, String> splits = SpeedrunState.getSplits();
-        if (!splits.isEmpty()) {
-             g.drawCenteredString(this.font, Component.translatable("gui.examplemod.splits").withStyle(net.minecraft.ChatFormatting.UNDERLINE), centerX, currentY, 0xFFAAAAAA);
-             currentY += 15;
-             for (java.util.Map.Entry<String, String> entry : splits.entrySet()) {
-                 g.drawCenteredString(this.font, entry.getKey() + ": " + entry.getValue(), centerX, currentY, 0xFFDDDDDD);
-                 currentY += 12;
-             }
+        if (Config.END_SHOW_SPLITS.get()) {
+            currentY += 8;
+            java.util.Map<String, String> splits = SpeedrunState.getSplits();
+            if (!splits.isEmpty()) {
+                 g.drawCenteredString(this.font, Component.translatable("gui.examplemod.splits").withStyle(net.minecraft.ChatFormatting.UNDERLINE), centerX, currentY, 0xFFAAAAAA);
+                 currentY += 15;
+                 for (java.util.Map.Entry<String, String> entry : splits.entrySet()) {
+                     g.drawCenteredString(this.font, entry.getKey() + ": " + entry.getValue(), centerX, currentY, 0xFFDDDDDD);
+                     currentY += 12;
+                 }
+            }
         }
     }
 

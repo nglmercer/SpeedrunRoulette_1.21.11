@@ -204,6 +204,7 @@ public class SpeedrunState {
         if (server != null) {
             SpeedrunWorldData data = SpeedrunWorldData.get(server);
             List<Objective> saved = data.getObjectives();
+            SpeedrunRoulette.LOGGER.info("[LoadObjectives] Found {} saved objectives in world data", saved.size());
             if (!saved.isEmpty()) {
                 objectives = new ArrayList<>(saved);
                 objectivesFresh = true;
@@ -213,6 +214,8 @@ public class SpeedrunState {
             }
             objectivesLoaded = true;
             autoOpenDelayTicks = 0;
+        } else {
+            SpeedrunRoulette.LOGGER.warn("[LoadObjectives] No singleplayer server available");
         }
     }
 

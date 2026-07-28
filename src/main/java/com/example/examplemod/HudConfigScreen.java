@@ -16,7 +16,7 @@ public class HudConfigScreen extends Screen {
     private boolean previewVictory = true;
     private static final String[] TAB_KEYS = {"gui.examplemod.hud_config.tab.hud", "gui.examplemod.hud_config.tab.end_screens"};
     private static final int TAB_WIDTH = 80;
-    private static final int OPTIONS_WIDTH = 170;
+    private static final int OPTIONS_WIDTH = 190;
 
     public HudConfigScreen(Screen parent) {
         super(Component.translatable("gui.examplemod.hud_config.title"));
@@ -26,10 +26,9 @@ public class HudConfigScreen extends Screen {
     @Override
     protected void init() {
         int tabY = 28;
-        int tabX = this.width / 2 - TAB_WIDTH;
+        int tabX = this.width - TAB_WIDTH * TAB_KEYS.length - (TAB_KEYS.length - 1) * 4;
         for (int i = 0; i < TAB_KEYS.length; i++) {
             final int idx = i;
-            boolean selected = (idx == activeTab);
             this.addRenderableWidget(Button.builder(
                 Component.translatable(TAB_KEYS[i]),
                 (btn) -> {
@@ -76,12 +75,7 @@ public class HudConfigScreen extends Screen {
             this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_background", Config.HUD_SHOW_BACKGROUND)); y += gap;
             this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_border", Config.HUD_SHOW_BORDER)); y += gap;
             this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_objectives", Config.HUD_SHOW_OBJECTIVES)); y += gap;
-            this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_stats", Config.HUD_SHOW_STATS)); y += gap + 4;
-
-            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.text_color", Config.HUD_TEXT_COLOR); y += gap;
-            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.timer_color", Config.HUD_TIMER_COLOR); y += gap;
-            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.stats_color", Config.HUD_STATS_COLOR); y += gap;
-            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.completed_color", Config.HUD_COMPLETED_COLOR); y += gap;
+            this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_stats", Config.HUD_SHOW_STATS)); y += gap;
         } else {
             this.addRenderableWidget(Button.builder(
                 Component.translatable("gui.examplemod.end_config.preview_toggle", previewVictory
@@ -106,7 +100,12 @@ public class HudConfigScreen extends Screen {
                 @Override protected Component buildLabel() {
                     return Component.translatable("gui.examplemod.end_config.bg_opacity", String.format("%.0f%%", Config.END_BG_OPACITY.get() * 100));
                 }
-            }); y += gap;
+            }); y += gap + 4;
+
+            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.text_color", Config.HUD_TEXT_COLOR); y += gap;
+            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.timer_color", Config.HUD_TIMER_COLOR); y += gap;
+            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.stats_color", Config.HUD_STATS_COLOR); y += gap;
+            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.completed_color", Config.HUD_COMPLETED_COLOR); y += gap;
         }
 
         maxScroll = Math.max(0, (y + scrollOffset) - (this.height - 40));
@@ -193,13 +192,14 @@ public class HudConfigScreen extends Screen {
         super.render(g, mouseX, mouseY, partialTick);
         g.drawCenteredString(this.font, this.title, this.width / 2, 8, 0xFFFFFF);
 
-        int previewX = OPTIONS_WIDTH + 25;
-        int previewW = this.width - previewX - 10;
+        int previewAreaX = OPTIONS_WIDTH + 25;
+        int previewAreaW = this.width - previewAreaX - 10;
+        int previewW = Math.min(previewAreaW, 400);
+        int previewX = previewAreaX + (previewAreaW - previewW) / 2;
         int previewY = 52;
         int previewH = this.height - previewY - 40;
 
         g.fill(previewX, previewY, previewX + previewW, previewY + previewH, 0x40000000);
-        g.renderOutline(previewX - 1, previewY - 1, previewW + 2, previewH + 2, 0xFF444444);
 
         if (activeTab == 0) {
             g.drawCenteredString(this.font, Component.translatable("gui.examplemod.hud_config.preview"), previewX + previewW / 2, previewY + 4, 0xFFAAAAAA);
@@ -221,7 +221,6 @@ public class HudConfigScreen extends Screen {
     private void renderVictoryPreview(GuiGraphics g, int x, int y, int w, int h) {
         int bgAlpha = (int)(Config.END_BG_OPACITY.get() * 255) & 0xFF;
         g.fill(x, y, x + w, y + h, (bgAlpha << 24));
-        g.renderOutline(x, y, w, h, 0xFFFFFFFF);
 
         int cx = x + w / 2;
         int cy = y + 10;
@@ -261,13 +260,21 @@ public class HudConfigScreen extends Screen {
     private void renderLosePreview(GuiGraphics g, int x, int y, int w, int h) {
         int bgAlpha = (int)(Config.END_BG_OPACITY.get() * 255) & 0xFF;
         g.fill(x, y, x + w, y + h, (bgAlpha << 24) | 0x220000);
-        g.renderOutline(x, y, w, h, 0xFFFFFFFF);
 
         int cx = x + w / 2;
         int cy = y + 10;
 
         g.drawCenteredString(this.font, Component.translatable("gui.examplemod.defeat_title").withStyle(net.minecraft.ChatFormatting.BOLD, net.minecraft.ChatFormatting.RED), cx, cy, 0xFFFF5555);
         cy += 14;
+
+        if (Config.END_SHOW_ICON.get()) {
+            g.pose().translate(cx, cy + 8);
+            g.pose().scale(2.0f, 2.0f);
+            g.renderItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.EMERALD), -8, -8);
+            g.pose().scale(0.5f, 0.5f);
+            g.pose().translate(-cx, -(cy + 8));
+            cy += 22;
+        }
 
         g.drawCenteredString(this.font, Component.translatable("gui.examplemod.defeat_subtitle"), cx, cy, 0xFFFFFFFF);
         cy += 14;

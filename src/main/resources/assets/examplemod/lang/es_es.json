@@ -91,6 +91,7 @@
   "gui.examplemod.end_config.show_icon": "Mostrar Icono: %s",
   "gui.examplemod.end_config.bg_opacity": "Opacidad Fondo: %s",
   "gui.examplemod.end_config.preview_toggle": "Vista: %s",
+  "gui.examplemod.end_config.preview": "Vista Previa:",
   "gui.examplemod.end_config.preview.victory": "Victoria",
   "gui.examplemod.end_config.preview.lose": "Derrota",
   "gui.examplemod.yes": "SÍ",

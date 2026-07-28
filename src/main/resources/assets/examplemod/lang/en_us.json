@@ -91,6 +91,7 @@
   "gui.examplemod.end_config.show_icon": "Show Icon: %s",
   "gui.examplemod.end_config.bg_opacity": "BG Opacity: %s",
   "gui.examplemod.end_config.preview_toggle": "Preview: %s",
+  "gui.examplemod.end_config.preview": "Preview:",
   "gui.examplemod.end_config.preview.victory": "Victory",
   "gui.examplemod.end_config.preview.lose": "Defeat",
   "gui.examplemod.yes": "YES",

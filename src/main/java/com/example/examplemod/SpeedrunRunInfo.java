@@ -159,13 +159,9 @@ public class SpeedrunRunInfo {
 
     public static String getLevelId(net.minecraft.server.MinecraftServer server) {
         try {
-            java.lang.reflect.Field f = net.minecraft.server.MinecraftServer.class.getDeclaredField("storageSource");
-            f.setAccessible(true);
-            Object storage = f.get(server);
-            java.lang.reflect.Method m = storage.getClass().getMethod("getLevelId");
-            return (String) m.invoke(storage);
+            return server.storageSource.getLevelId();
         } catch (Exception e) {
-            SpeedrunRoulette.LOGGER.error("Failed to get level ID via reflection", e);
+            SpeedrunRoulette.LOGGER.error("Failed to get level ID", e);
             return null;
         }
     }

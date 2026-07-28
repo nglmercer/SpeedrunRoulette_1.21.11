@@ -11,6 +11,10 @@ base {
     archivesName = project.mod_id
 }
 
+loom {
+    accessWidenerPath = file("src/main/resources/examplemod.accesswidener")
+}
+
 // Mojang ships Java 21 to end users in 1.21, so mods should target Java 21.
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 

@@ -272,6 +272,10 @@ public class SpeedrunState {
         }
 
         if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset) {
+            boolean startingNew = SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun;
+            boolean startingRetry = SpeedrunRoulette.pendingReplay;
+            boolean startingReset = SpeedrunRoulette.pendingReset;
+
             if (hasActiveObjectives()) {
                 try {
                     SpeedrunRunInfo.save(false);
@@ -280,36 +284,40 @@ public class SpeedrunState {
                 }
             }
 
-            if (SpeedrunRoulette.pendingReset && mc.level != null) {
+            if (startingReset && mc.level != null) {
                 net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
                 if (server != null) {
                     SpeedrunRoulette.pendingLevelId = SpeedrunRunInfo.getLevelId(server);
                 }
             }
 
+            // Clear pending flags immediately so this block executes ONLY ONCE per command
+            SpeedrunRoulette.pendingGiveUp = false;
+            SpeedrunRoulette.pendingNewRun = false;
+            SpeedrunRoulette.pendingReplay = false;
+            SpeedrunRoulette.pendingReset = false;
+
+            if (startingRetry) {
+                SpeedrunRoulette.LOGGER.info("ClientTick: Preparing for Retry (Keep Objectives)");
+                prepareForRetry();
+                SpeedrunAutoNav.autoTriggerCreateWorld = false;
+            } else if (startingNew || startingReset) {
+                SpeedrunRoulette.LOGGER.info("ClientTick: Preparing for New Run / Reset");
+                prepareForNewGame();
+                SpeedrunAutoNav.autoTriggerCreateWorld = true;
+                SpeedrunAutoNav.resetProgress();
+                if (startingReset) {
+                    SpeedrunRoulette.deleteWorldSave();
+                }
+            }
+
             if (mc.level != null) {
                 mc.disconnect(new TitleScreen(), false);
             } else {
-                if (SpeedrunRoulette.pendingReplay) {
-                    prepareForRetry();
-                    SpeedrunRoulette.pendingReplay = false;
-                    SpeedrunAutoNav.autoTriggerCreateWorld = false;
+                if (!SpeedrunAutoNav.autoTriggerCreateWorld) {
                     finishTransition();
-                } else if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReset) {
-                    SpeedrunAutoNav.autoTriggerCreateWorld = true;
-                    SpeedrunRoulette.hasCheckedAutoOpen = false;
-                    if (!(mc.screen instanceof TitleScreen)) {
-                        mc.setScreen(new TitleScreen());
-                    } else {
-                        prepareForNewGame();
-                        SpeedrunAutoNav.resetProgress();
-                        if (SpeedrunRoulette.pendingReset) {
-                            SpeedrunRoulette.deleteWorldSave();
-                        }
-                        SpeedrunRoulette.pendingGiveUp = false;
-                        SpeedrunRoulette.pendingNewRun = false;
-                        SpeedrunRoulette.pendingReset = false;
-                    }
+                } else if (!(mc.screen instanceof TitleScreen)) {
+                    mc.setScreen(new TitleScreen());
                 }
             }
             return;

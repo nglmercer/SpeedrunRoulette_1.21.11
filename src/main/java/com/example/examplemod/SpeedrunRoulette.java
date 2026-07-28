@@ -206,47 +206,6 @@ public class SpeedrunRoulette {
 
         @SubscribeEvent
         public void onScreenInit(ScreenEvent.Init.Post event) {
-            if (event.getScreen() instanceof net.minecraft.client.gui.screens.TitleScreen) {
-                boolean startingNew = SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun;
-                boolean startingRetry = SpeedrunRoulette.pendingReplay;
-                boolean startingReset = SpeedrunRoulette.pendingReset;
-
-                if (startingNew) {
-                    LOGGER.info("TitleScreen: Preparing for New Game (Clear Objectives)");
-                    SpeedrunState.prepareForNewGame();
-                    SpeedrunAutoNav.autoTriggerCreateWorld = true;
-                    SpeedrunAutoNav.resetProgress();
-                } else if (startingRetry) {
-                    LOGGER.info("TitleScreen: Preparing for Retry (Keep Objectives)");
-                    SpeedrunState.prepareForRetry();
-                    SpeedrunAutoNav.autoTriggerCreateWorld = false;
-                } else if (startingReset) {
-                    LOGGER.info("TitleScreen: Preparing for Reset (Delete World and Create New)");
-                    SpeedrunState.prepareForNewGame();
-                    SpeedrunAutoNav.autoTriggerCreateWorld = true;
-                    SpeedrunAutoNav.resetProgress();
-                    try {
-                        deleteWorldSave();
-                    } catch (Throwable t) {
-                        LOGGER.error("Failed to delete world save on reset", t);
-                    }
-                }
-
-                if (startingNew || startingRetry || startingReset) {
-                    SpeedrunRoulette.pendingGiveUp = false;
-                    SpeedrunRoulette.pendingNewRun = false;
-                    SpeedrunRoulette.pendingReplay = false;
-                    SpeedrunRoulette.pendingReset = false;
-                    SpeedrunRoulette.pendingVictoryTime = null;
-                    SpeedrunRoulette.pendingVictoryObjectiveName = null;
-                    SpeedrunRoulette.hasCheckedAutoOpen = false;
-                    // Keep isTransitioning while auto-nav runs; finish when Create is pressed.
-                    if (!SpeedrunAutoNav.autoTriggerCreateWorld) {
-                        SpeedrunState.finishTransition();
-                    }
-                }
-            }
-
             SpeedrunState.onScreenInit(event);
         }
 

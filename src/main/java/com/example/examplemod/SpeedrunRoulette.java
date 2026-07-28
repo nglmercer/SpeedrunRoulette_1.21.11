@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.server.level.ServerPlayer;
 import com.mojang.blaze3d.platform.InputConstants;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,6 +59,7 @@ public class SpeedrunRoulette {
     public static boolean pendingGiveUp = false;
     public static boolean pendingReplay = false;
     public static boolean pendingNewRun = false;
+    public static boolean pendingReset = false;
 
     // Auto-open wheel state
     public static boolean hasCheckedAutoOpen = false;
@@ -86,6 +88,39 @@ public class SpeedrunRoulette {
 
     private void registerNetwork(final RegisterPayloadHandlersEvent event) {
         SpeedrunNetwork.register(event);
+    }
+
+    private static void deleteWorldSave() {
+        try {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.level == null) return;
+            net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
+            if (server == null) return;
+            String levelId = SpeedrunRunInfo.getLevelId(server);
+            if (levelId == null) return;
+            File savesDir = mc.gameDirectory.toPath().resolve("saves").toFile();
+            File levelDir = new File(savesDir, levelId);
+            if (levelDir.isDirectory()) {
+                deleteDirectory(levelDir);
+                LOGGER.info("Deleted world save directory: " + levelDir.getAbsolutePath());
+            }
+        } catch (Throwable t) {
+            LOGGER.error("Failed to delete world save on reset", t);
+        }
+    }
+
+    private static void deleteDirectory(File dir) {
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    deleteDirectory(file);
+                } else {
+                    file.delete();
+                }
+            }
+        }
+        dir.delete();
     }
 
     @SubscribeEvent
@@ -168,6 +203,7 @@ public class SpeedrunRoulette {
             if (event.getScreen() instanceof net.minecraft.client.gui.screens.TitleScreen) {
                 boolean startingNew = SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun;
                 boolean startingRetry = SpeedrunRoulette.pendingReplay;
+                boolean startingReset = SpeedrunRoulette.pendingReset;
 
                 if (startingNew) {
                     LOGGER.info("TitleScreen: Preparing for New Game (Clear Objectives)");
@@ -178,12 +214,23 @@ public class SpeedrunRoulette {
                     LOGGER.info("TitleScreen: Preparing for Retry (Keep Objectives)");
                     SpeedrunState.prepareForRetry();
                     SpeedrunAutoNav.autoTriggerCreateWorld = false;
+                } else if (startingReset) {
+                    LOGGER.info("TitleScreen: Preparing for Reset (Delete World and Create New)");
+                    SpeedrunState.prepareForNewGame();
+                    SpeedrunAutoNav.autoTriggerCreateWorld = true;
+                    SpeedrunAutoNav.resetProgress();
+                    try {
+                        deleteWorldSave();
+                    } catch (Throwable t) {
+                        LOGGER.error("Failed to delete world save on reset", t);
+                    }
                 }
 
-                if (startingNew || startingRetry) {
+                if (startingNew || startingRetry || startingReset) {
                     SpeedrunRoulette.pendingGiveUp = false;
                     SpeedrunRoulette.pendingNewRun = false;
                     SpeedrunRoulette.pendingReplay = false;
+                    SpeedrunRoulette.pendingReset = false;
                     SpeedrunRoulette.pendingVictoryTime = null;
                     SpeedrunRoulette.pendingVictoryObjectiveName = null;
                     SpeedrunRoulette.hasCheckedAutoOpen = false;

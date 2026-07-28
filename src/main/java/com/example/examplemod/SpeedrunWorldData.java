@@ -36,14 +36,14 @@ public class SpeedrunWorldData extends SavedData {
         SpeedrunWorldData data = new SpeedrunWorldData();
         data.objectives.clear();
         if (tag.contains("objectives")) {
+            Object listObj = tag.getList("objectives");
             ListTag list = null;
-            Object listObj = tag.getList("objectives"); // Assuming getList(String) returns ListTag or Object
-            if (listObj instanceof ListTag) {
+            if (listObj instanceof Optional) {
+                list = ((Optional<ListTag>) listObj).orElse(null);
+            } else {
                 list = (ListTag) listObj;
-            } else if (listObj instanceof Optional) {
-                list = (ListTag)((Optional)listObj).orElse(null);
             }
-            
+
             if (list != null) {
                 for (int i = 0; i < list.size(); i++) {
                     try {
@@ -54,7 +54,7 @@ public class SpeedrunWorldData extends SavedData {
                         } else {
                             objTag = (CompoundTag) objTagObj;
                         }
-                        
+
                         if (objTag != null) {
                             data.objectives.add(Objective.load(objTag, provider));
                         }
@@ -62,6 +62,15 @@ public class SpeedrunWorldData extends SavedData {
                     }
                 }
             }
+        }
+        if (tag.contains("runInfoVictory")) {
+            data.runInfoVictory = tag.getBoolean("runInfoVictory").orElse(false);
+        }
+        if (tag.contains("runInfoTime")) {
+            data.runInfoTime = tag.getString("runInfoTime").orElse("");
+        }
+        if (tag.contains("runInfoObjective")) {
+            data.runInfoObjective = tag.getString("runInfoObjective").orElse("");
         }
         return data;
     }
@@ -72,6 +81,9 @@ public class SpeedrunWorldData extends SavedData {
             list.add(obj.save(provider));
         }
         tag.put("objectives", list);
+        tag.putBoolean("runInfoVictory", runInfoVictory);
+        tag.putString("runInfoTime", runInfoTime);
+        tag.putString("runInfoObjective", runInfoObjective);
         return tag;
     }
     

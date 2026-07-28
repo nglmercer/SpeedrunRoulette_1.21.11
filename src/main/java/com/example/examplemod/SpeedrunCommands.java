@@ -82,7 +82,7 @@ public class SpeedrunCommands {
                 .then(Commands.literal("reset")
                     .executes(context -> {
                         context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_reset_world"), false);
-                        SpeedrunState.beginNewRunAndDisconnect();
+                        SpeedrunState.beginResetAndDisconnect();
                         return 1;
                     })
                 )

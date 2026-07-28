@@ -81,6 +81,8 @@ public class SpeedrunState {
                 objectives = new ArrayList<>(saved);
                 objectivesFresh = true;
                 objectivesCompleted = false;
+            } else {
+                objectivesFresh = false;
             }
             objectivesLoaded = true;
             autoOpenDelayTicks = 0;
@@ -114,7 +116,7 @@ public class SpeedrunState {
         SpeedrunTimer.reset();
         SpeedrunSplits.reset();
         objectivesFresh = false;
-        objectivesLoaded = true;
+        objectivesLoaded = false;
     }
 
     public static void finishTransition() {
@@ -155,7 +157,7 @@ public class SpeedrunState {
     }
 
     public static void beginNewRunAndDisconnect() {
-        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || isTransitioning) {
+        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset || isTransitioning) {
             return;
         }
 
@@ -182,6 +184,38 @@ public class SpeedrunState {
                 prepareForNewGame();
                 SpeedrunAutoNav.resetProgress();
                 SpeedrunRoulette.pendingNewRun = false;
+            }
+        }
+    }
+
+    public static void beginResetAndDisconnect() {
+        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset || isTransitioning) {
+            return;
+        }
+
+        SpeedrunRoulette.pendingReset = true;
+        isTransitioning = true;
+
+        try {
+            if (hasActiveObjectives()) {
+                SpeedrunRunInfo.save(false);
+            }
+        } catch (Throwable t) {
+            SpeedrunRoulette.LOGGER.error("Failed to save run info on reset", t);
+        }
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level != null) {
+            mc.disconnect(new TitleScreen(), false);
+        } else {
+            SpeedrunAutoNav.autoTriggerCreateWorld = true;
+            SpeedrunRoulette.hasCheckedAutoOpen = false;
+            if (!(mc.screen instanceof TitleScreen)) {
+                mc.setScreen(new TitleScreen());
+            } else {
+                prepareForNewGame();
+                SpeedrunAutoNav.resetProgress();
+                SpeedrunRoulette.pendingReset = false;
             }
         }
     }
@@ -229,7 +263,7 @@ public class SpeedrunState {
         if (!objectivesLoaded) {
             autoOpenDelayTicks++;
             if (autoOpenDelayTicks >= 20) {
-                objectivesLoaded = true;
+                loadObjectivesFromWorld();
             }
         }
 

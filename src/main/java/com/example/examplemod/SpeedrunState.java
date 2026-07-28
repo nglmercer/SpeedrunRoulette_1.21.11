@@ -12,9 +12,11 @@ import java.util.List;
 import java.util.Map;
 
 public class SpeedrunState {
-    private static List<Objective> objectives = Collections.emptyList();
+    private static List<Objective> objectives = new ArrayList<>();
     private static boolean objectivesCompleted = false;
     private static boolean objectivesFresh = false;
+    private static boolean objectivesLoaded = false;
+    private static int autoOpenDelayTicks = 0;
 
     public static boolean keepObjectivesForNextRun = false;
     public static boolean isTransitioning = false;
@@ -22,9 +24,12 @@ public class SpeedrunState {
     // --- Objectives Management ---
 
     public static void setObjectives(List<Objective> objs, boolean save) {
+        if (objs == null) return;
         objectives = objs;
         objectivesFresh = true;
         objectivesCompleted = false;
+        objectivesLoaded = true;
+        autoOpenDelayTicks = 0;
         if (Config.AUTO_START.get() && !objs.isEmpty()) {
             SpeedrunTimer.start();
         }
@@ -53,12 +58,34 @@ public class SpeedrunState {
     }
 
     public static void clearObjectives() {
-        objectives = Collections.emptyList();
+        objectives = new ArrayList<>();
         objectivesCompleted = false;
+        objectivesLoaded = true;
+        autoOpenDelayTicks = 0;
     }
 
     public static boolean hasActiveObjectives() {
         return !objectives.isEmpty();
+    }
+
+    public static boolean isObjectivesLoaded() {
+        return objectivesLoaded;
+    }
+
+    public static void loadObjectivesFromWorld() {
+        Minecraft mc = Minecraft.getInstance();
+        net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
+        if (server != null) {
+            SpeedrunWorldData data = SpeedrunWorldData.get(server);
+            List<Objective> saved = data.getObjectives();
+            if (!saved.isEmpty()) {
+                objectives = new ArrayList<>(saved);
+                objectivesFresh = true;
+                objectivesCompleted = false;
+            }
+            objectivesLoaded = true;
+            autoOpenDelayTicks = 0;
+        }
     }
 
     public static boolean isCompleted() {
@@ -77,6 +104,8 @@ public class SpeedrunState {
         SpeedrunTimer.reset();
         SpeedrunSplits.reset();
         objectivesFresh = true;
+        objectivesLoaded = true;
+        saveObjectivesToWorld();
     }
 
     public static void prepareForNewGame() {
@@ -86,6 +115,7 @@ public class SpeedrunState {
         SpeedrunTimer.reset();
         SpeedrunSplits.reset();
         objectivesFresh = false;
+        objectivesLoaded = true;
     }
 
     public static void finishTransition() {
@@ -113,12 +143,14 @@ public class SpeedrunState {
         if (mc.level != null) {
             mc.disconnect(new TitleScreen(), false);
         } else {
-            prepareForNewGame();
             SpeedrunAutoNav.autoTriggerCreateWorld = true;
             SpeedrunRoulette.hasCheckedAutoOpen = false;
-            SpeedrunRoulette.pendingGiveUp = false;
             if (!(mc.screen instanceof TitleScreen)) {
                 mc.setScreen(new TitleScreen());
+            } else {
+                prepareForNewGame();
+                SpeedrunAutoNav.resetProgress();
+                SpeedrunRoulette.pendingGiveUp = false;
             }
         }
     }
@@ -143,12 +175,14 @@ public class SpeedrunState {
         if (mc.level != null) {
             mc.disconnect(new TitleScreen(), false);
         } else {
-            prepareForNewGame();
             SpeedrunAutoNav.autoTriggerCreateWorld = true;
             SpeedrunRoulette.hasCheckedAutoOpen = false;
-            SpeedrunRoulette.pendingNewRun = false;
             if (!(mc.screen instanceof TitleScreen)) {
                 mc.setScreen(new TitleScreen());
+            } else {
+                prepareForNewGame();
+                SpeedrunAutoNav.resetProgress();
+                SpeedrunRoulette.pendingNewRun = false;
             }
         }
     }
@@ -167,6 +201,10 @@ public class SpeedrunState {
 
     public static void checkAutoOpen() {
         if (!Config.AUTO_OPEN_WHEEL.get()) return;
+
+        if (!objectivesLoaded) {
+            loadObjectivesFromWorld();
+        }
 
         boolean hasObjs = !objectives.isEmpty();
 
@@ -260,92 +298,91 @@ public class SpeedrunState {
     // --- Facade methods for backward compatibility ---
 
     /** @deprecated Use {@link SpeedrunTimer#reset()} directly */
-    public static void resetTimer() {
+    @Deprecated public static void resetTimer() {
         SpeedrunTimer.reset();
         SpeedrunSplits.reset();
     }
 
     /** @deprecated Use {@link SpeedrunTimer#start()} directly */
-    public static void startTimer() { SpeedrunTimer.start(); }
+    @Deprecated public static void startTimer() { SpeedrunTimer.start(); }
 
     /** @deprecated Use {@link SpeedrunTimer#stop()} directly */
-    public static void stopTimer() { SpeedrunTimer.stop(); }
+    @Deprecated public static void stopTimer() { SpeedrunTimer.stop(); }
 
     /** @deprecated Use {@link SpeedrunTimer#toggleHud()} directly */
-    public static void toggleHud() { SpeedrunTimer.toggleHud(); }
+    @Deprecated public static void toggleHud() { SpeedrunTimer.toggleHud(); }
 
     /** @deprecated Use {@link SpeedrunTimer#toggleManualPause()} directly */
-    public static void toggleManualPause() { SpeedrunTimer.toggleManualPause(); }
+    @Deprecated public static void toggleManualPause() { SpeedrunTimer.toggleManualPause(); }
 
     /** @deprecated Use {@link SpeedrunTimer#onSystemPause(boolean)} directly */
-    public static void onSystemPause(boolean paused) { SpeedrunTimer.onSystemPause(paused); }
+    @Deprecated public static void onSystemPause(boolean paused) { SpeedrunTimer.onSystemPause(paused); }
 
     /** @deprecated Use {@link SpeedrunTimer#currentFormattedTime()} directly */
-    public static String currentFormattedTime() { return SpeedrunTimer.currentFormattedTime(); }
+    @Deprecated public static String currentFormattedTime() { return SpeedrunTimer.currentFormattedTime(); }
 
     /** @deprecated Use {@link SpeedrunTimer#getFormattedTimeFromNanos(long)} directly */
-    public static String getFormattedTimeFromNanos(long nanos) { return SpeedrunTimer.getFormattedTimeFromNanos(nanos); }
+    @Deprecated public static String getFormattedTimeFromNanos(long nanos) { return SpeedrunTimer.getFormattedTimeFromNanos(nanos); }
 
     /** @deprecated Use {@link SpeedrunTimer#getDeathCount()} directly */
-    public static int getDeathCount() { return SpeedrunTimer.getDeathCount(); }
+    @Deprecated public static int getDeathCount() { return SpeedrunTimer.getDeathCount(); }
 
     /** @deprecated Use {@link SpeedrunTimer#getTraveledMeters()} directly */
-    public static double getTraveledMeters() { return SpeedrunTimer.getTraveledMeters(); }
+    @Deprecated public static double getTraveledMeters() { return SpeedrunTimer.getTraveledMeters(); }
 
     /** @deprecated Use {@link SpeedrunTimer#getDaysPlayed()} directly */
-    public static long getDaysPlayed() { return SpeedrunTimer.getDaysPlayed(); }
+    @Deprecated public static long getDaysPlayed() { return SpeedrunTimer.getDaysPlayed(); }
 
     /** @deprecated Use {@link SpeedrunHud#onRenderHud(GuiGraphics)} directly */
-    public static void onRenderHud(GuiGraphics g) { SpeedrunHud.onRenderHud(g); }
+    @Deprecated public static void onRenderHud(GuiGraphics g) { SpeedrunHud.onRenderHud(g); }
 
     /** @deprecated Use {@link SpeedrunHud#renderPreviewHud(GuiGraphics, int, int)} directly */
-    public static void renderPreviewHud(GuiGraphics g, int width, int margin) { SpeedrunHud.renderPreviewHud(g, width, margin); }
+    @Deprecated public static void renderPreviewHud(GuiGraphics g, int width, int margin) { SpeedrunHud.renderPreviewHud(g, width, margin); }
 
     /** @deprecated Use {@link SpeedrunRunInfo#save(boolean)} directly */
-    public static void saveRunInfo(boolean isVictory) { SpeedrunRunInfo.save(isVictory); }
+    @Deprecated public static void saveRunInfo(boolean isVictory) { SpeedrunRunInfo.save(isVictory); }
 
     /** @deprecated Use {@link SpeedrunRunInfo#get(String)} directly */
-    public static SpeedrunRunInfo.RunInfo getRunInfo(String levelId) { return SpeedrunRunInfo.get(levelId); }
+    @Deprecated public static SpeedrunRunInfo.RunInfo getRunInfo(String levelId) { return SpeedrunRunInfo.get(levelId); }
 
     /** @deprecated Use {@link SpeedrunRunInfo#show(net.minecraft.client.gui.screens.Screen, String)} directly */
-    public static void showRunInfo(net.minecraft.client.gui.screens.Screen parent, String levelId) { SpeedrunRunInfo.show(parent, levelId); }
+    @Deprecated public static void showRunInfo(net.minecraft.client.gui.screens.Screen parent, String levelId) { SpeedrunRunInfo.show(parent, levelId); }
 
     /** @deprecated Use {@link SpeedrunRunInfo#getLevelId(net.minecraft.server.MinecraftServer)} directly */
-    public static String getLevelId(net.minecraft.server.MinecraftServer server) { return SpeedrunRunInfo.getLevelId(server); }
+    @Deprecated public static String getLevelId(net.minecraft.server.MinecraftServer server) { return SpeedrunRunInfo.getLevelId(server); }
 
     /** @deprecated Use {@link SpeedrunSplits#getSplits()} directly */
-    public static Map<String, String> getSplits() { return SpeedrunSplits.getSplits(); }
+    @Deprecated public static Map<String, String> getSplits() { return SpeedrunSplits.getSplits(); }
 
     /** @deprecated Use {@link SpeedrunAutoNav#canAutoNavigateMenus()} directly */
-    public static boolean canAutoNavigateMenus() { return SpeedrunAutoNav.canAutoNavigateMenus(); }
+    @Deprecated public static boolean canAutoNavigateMenus() { return SpeedrunAutoNav.canAutoNavigateMenus(); }
 
     /** @deprecated Use {@link SpeedrunAutoNav#isDisconnectingOrSaving()} directly */
-    public static boolean isDisconnectingOrSaving() { return SpeedrunAutoNav.isDisconnectingOrSaving(); }
+    @Deprecated public static boolean isDisconnectingOrSaving() { return SpeedrunAutoNav.isDisconnectingOrSaving(); }
 
     /** @deprecated Use {@link SpeedrunAutoNav#tickAutoNavFromTitle(Minecraft)} directly */
-    public static void tickAutoNavFromTitle(Minecraft mc) { SpeedrunAutoNav.tickAutoNavFromTitle(mc); }
+    @Deprecated public static void tickAutoNavFromTitle(Minecraft mc) { SpeedrunAutoNav.tickAutoNavFromTitle(mc); }
 
     /** @deprecated Use {@link SpeedrunAutoNav#cancel()} directly */
-    public static void cancelAutoNav() { SpeedrunAutoNav.cancel(); }
+    @Deprecated public static void cancelAutoNav() { SpeedrunAutoNav.cancel(); }
 
     /** @deprecated Use {@link SpeedrunAutoNav#resetProgress()} directly */
-    public static void resetAutoNavProgress() { SpeedrunAutoNav.resetProgress(); }
-
+    @Deprecated public static void resetAutoNavProgress() { SpeedrunAutoNav.resetProgress(); }
 
     /** @deprecated Use {@link SpeedrunAutoNav#setAutoTriggerCreateWorld(boolean)} directly */
-    public static void setAutoTriggerCreateWorld(boolean v) { SpeedrunAutoNav.setAutoTriggerCreateWorld(v); }
+    @Deprecated public static void setAutoTriggerCreateWorld(boolean v) { SpeedrunAutoNav.setAutoTriggerCreateWorld(v); }
 
     /** @deprecated Use {@link SpeedrunAutoNav#isAutoTriggerCreateWorld()} directly */
-    public static boolean isAutoTriggerCreateWorld() { return SpeedrunAutoNav.isAutoTriggerCreateWorld(); }
+    @Deprecated public static boolean isAutoTriggerCreateWorld() { return SpeedrunAutoNav.isAutoTriggerCreateWorld(); }
 
     /** @deprecated Use field directly */
-    public static void setKeepObjectivesForNextRun(boolean v) { keepObjectivesForNextRun = v; }
+    @Deprecated public static void setKeepObjectivesForNextRun(boolean v) { keepObjectivesForNextRun = v; }
 
     /** @deprecated Use field directly */
-    public static boolean isKeepObjectivesForNextRun() { return keepObjectivesForNextRun; }
+    @Deprecated public static boolean isKeepObjectivesForNextRun() { return keepObjectivesForNextRun; }
 
     /** @deprecated Use {@link SpeedrunRunInfo.RunInfo} directly */
-    public static class RunInfo extends SpeedrunRunInfo.RunInfo {
+    @Deprecated public static class RunInfo extends SpeedrunRunInfo.RunInfo {
         public RunInfo(boolean v, String t, String o, long ts) { super(v, t, o, ts); }
         public RunInfo() { super(); }
     }

@@ -240,7 +240,7 @@ public class SpeedrunRoulette {
                              summaryField.setAccessible(true);
                              net.minecraft.world.level.storage.LevelSummary summary = (net.minecraft.world.level.storage.LevelSummary) summaryField.get(entry);
                              
-                             SpeedrunState.RunInfo info = SpeedrunState.getRunInfo(summary.getLevelId());
+                             SpeedrunRunInfo.RunInfo info = SpeedrunRunInfo.get(summary.getLevelId());
                              
                              if (info.hasInfo) {
                                  // Icon Position: Right side of entry

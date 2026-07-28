@@ -390,7 +390,10 @@ public class SpeedrunState {
             SpeedrunAutoNav.resetProgress();
         } else if (startingRetryNewSeed) {
             SpeedrunRoulette.LOGGER.info("TitleScreen: Preparing for Retry New Seed");
-            prepareForRetry();
+            SpeedrunTimer.reset();
+            SpeedrunSplits.reset();
+            objectivesFresh = true;
+            objectivesLoaded = true;
             SpeedrunAutoNav.autoTriggerCreateWorld = true;
             SpeedrunAutoNav.resetProgress();
         } else if (startingNew) {

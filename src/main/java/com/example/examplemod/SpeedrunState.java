@@ -51,6 +51,8 @@ public class SpeedrunState {
     public static boolean autoTriggerCreateWorld = false;
     public static boolean keepObjectivesForNextRun = false;
     public static boolean isTransitioning = false;
+    /** Prevents Title→SelectWorld from re-firing if the user backs out of auto-nav. */
+    private static boolean autoNavLeftTitle = false;
 
     public static void prepareForRetry() {
         keepObjectivesForNextRun = true;
@@ -69,36 +71,99 @@ public class SpeedrunState {
 
     public static void finishTransition() {
         isTransitioning = false;
+        autoNavLeftTitle = false;
+    }
+
+    public static void cancelAutoNav() {
+        autoTriggerCreateWorld = false;
+        autoNavLeftTitle = false;
+        finishTransition();
+    }
+
+    public static void resetAutoNavProgress() {
+        autoNavLeftTitle = false;
+    }
+
+    /** One-shot TitleScreen → SelectWorldScreen. Called from client tick after server is gone. */
+    public static void tickAutoNavFromTitle(Minecraft mc) {
+        if (!autoTriggerCreateWorld || autoNavLeftTitle || !canAutoNavigateMenus()) {
+            return;
+        }
+        if (mc.screen instanceof TitleScreen) {
+            autoNavLeftTitle = true;
+            SpeedrunRoulette.LOGGER.info("AutoNav: Transitioning TitleScreen -> SelectWorldScreen");
+            mc.setScreen(new net.minecraft.client.gui.screens.worldselection.SelectWorldScreen(mc.screen));
+        }
     }
 
     /**
-     * Give up current run: save failure info, clear objectives, disconnect, then auto-open create world.
-     * Safe to call from UI or commands; ignores duplicate clicks while a transition is already pending.
+     * Same sequence as VictoryScreen buttons: set flag, save run info, disconnect.
+     * Do NOT clear objectives / arm auto-nav before disconnect — that races the blocking
+     * "Saving world" wait and freezes/crashes the client. TitleScreen init handles prep
+     * after the integrated server is fully stopped.
      */
     public static void beginGiveUpAndDisconnect() {
-        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay) {
+        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || isTransitioning) {
             return;
         }
 
         SpeedrunRoulette.pendingGiveUp = true;
         isTransitioning = true;
 
-        // Capture run info before clearing objectives
-        if (hasActiveObjectives()) {
-            saveRunInfo(false);
+        try {
+            if (hasActiveObjectives()) {
+                saveRunInfo(false);
+            }
+        } catch (Throwable t) {
+            SpeedrunRoulette.LOGGER.error("Failed to save run info on give up", t);
         }
 
-        // Prepare next run state now so TitleScreen does not depend on a second pass
-        prepareForNewGame();
-        autoTriggerCreateWorld = true;
-        SpeedrunRoulette.hasCheckedAutoOpen = false;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level != null) {
+            // Blocks until integrated server has fully shut down, then shows TitleScreen.
+            // pendingGiveUp is consumed in TitleScreen Init after this returns.
+            mc.disconnect(new TitleScreen(), false);
+        } else {
+            // Already in menus — arm auto-nav directly.
+            prepareForNewGame();
+            autoTriggerCreateWorld = true;
+            autoNavLeftTitle = false;
+            SpeedrunRoulette.hasCheckedAutoOpen = false;
+            SpeedrunRoulette.pendingGiveUp = false;
+            if (!(mc.screen instanceof TitleScreen)) {
+                mc.setScreen(new TitleScreen());
+            }
+        }
+    }
+
+    /**
+     * Same Victory-style disconnect used for new-run / reset commands.
+     */
+    public static void beginNewRunAndDisconnect() {
+        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || isTransitioning) {
+            return;
+        }
+
+        SpeedrunRoulette.pendingNewRun = true;
+        isTransitioning = true;
+
+        try {
+            if (hasActiveObjectives()) {
+                saveRunInfo(false);
+            }
+        } catch (Throwable t) {
+            SpeedrunRoulette.LOGGER.error("Failed to save run info on new run", t);
+        }
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.level != null) {
             mc.disconnect(new TitleScreen(), false);
         } else {
-            // Already in menus: auto-nav via ClientTick (autoTriggerCreateWorld already set)
-            SpeedrunRoulette.pendingGiveUp = false;
+            prepareForNewGame();
+            autoTriggerCreateWorld = true;
+            autoNavLeftTitle = false;
+            SpeedrunRoulette.hasCheckedAutoOpen = false;
+            SpeedrunRoulette.pendingNewRun = false;
             if (!(mc.screen instanceof TitleScreen)) {
                 mc.setScreen(new TitleScreen());
             }
@@ -111,11 +176,23 @@ public class SpeedrunState {
      */
     public static boolean canAutoNavigateMenus() {
         Minecraft mc = Minecraft.getInstance();
-        return mc.getSingleplayerServer() == null
-            && mc.level == null
-            && mc.player == null
-            && !(mc.screen instanceof net.minecraft.client.gui.screens.GenericMessageScreen)
-            && !(mc.screen instanceof net.minecraft.client.gui.screens.LevelLoadingScreen);
+        if (mc.getSingleplayerServer() != null) return false;
+        if (mc.level != null || mc.player != null) return false;
+        if (mc.screen instanceof net.minecraft.client.gui.screens.GenericMessageScreen) return false;
+        if (mc.screen instanceof net.minecraft.client.gui.screens.LevelLoadingScreen) return false;
+        if (mc.screen instanceof net.minecraft.client.gui.screens.ProgressScreen) return false;
+        return true;
+    }
+
+    public static boolean isDisconnectingOrSaving() {
+        Minecraft mc = Minecraft.getInstance();
+        return SpeedrunRoulette.pendingGiveUp
+            || SpeedrunRoulette.pendingNewRun
+            || SpeedrunRoulette.pendingReplay
+            || isTransitioning
+            || mc.screen instanceof net.minecraft.client.gui.screens.GenericMessageScreen
+            || mc.screen instanceof net.minecraft.client.gui.screens.LevelLoadingScreen
+            || mc.screen instanceof net.minecraft.client.gui.screens.ProgressScreen;
     }
 
     // Splits
@@ -299,32 +376,39 @@ public class SpeedrunState {
     }
 
     public static void saveRunInfo(boolean isVictory) {
-        Minecraft mc = Minecraft.getInstance();
-        net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
+        try {
+            Minecraft mc = Minecraft.getInstance();
+            net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
 
-        String time = SpeedrunRoulette.pendingVictoryTime != null ? SpeedrunRoulette.pendingVictoryTime : currentFormattedTime();
+            String time = SpeedrunRoulette.pendingVictoryTime != null ? SpeedrunRoulette.pendingVictoryTime : currentFormattedTime();
 
-        String objectiveName;
-        List<Objective> objs = getObjectives();
-        if (!objs.isEmpty()) {
-            if (objs.size() > 1) {
-                objectiveName = Component.translatable("gui.examplemod.list_of_items", objs.size()).getString();
+            String objectiveName;
+            List<Objective> objs = getObjectives();
+            if (!objs.isEmpty()) {
+                if (objs.size() > 1) {
+                    objectiveName = Component.translatable("gui.examplemod.list_of_items", objs.size()).getString();
+                } else {
+                    objectiveName = objs.get(0).getDisplayName().getString();
+                }
             } else {
-                objectiveName = objs.get(0).getDisplayName().getString();
+                objectiveName = Component.translatable("gui.examplemod.default_speedrun_name").getString();
             }
-        } else {
-            objectiveName = Component.translatable("gui.examplemod.default_speedrun_name").getString();
-        }
 
-        if (server != null) {
-            String levelId = getLevelId(server);
-            if (levelId == null) return;
+            if (server != null) {
+                // Avoid writing while server is already stopping — can corrupt/hang world save.
+                if (!server.isRunning() || server.isStopped()) {
+                    return;
+                }
 
-            File savesDir = mc.gameDirectory.toPath().resolve("saves").toFile();
-            File levelDir = new File(savesDir, levelId);
-            File infoFile = new File(levelDir, "speedrun_info.nbt");
+                String levelId = getLevelId(server);
+                if (levelId == null) return;
 
-            try {
+                File savesDir = mc.gameDirectory.toPath().resolve("saves").toFile();
+                File levelDir = new File(savesDir, levelId);
+                if (!levelDir.isDirectory()) return;
+
+                File infoFile = new File(levelDir, "speedrun_info.nbt");
+
                 CompoundTag tag = new CompoundTag();
                 tag.putBoolean("isVictory", isVictory);
                 tag.putString("time", time);
@@ -333,11 +417,11 @@ public class SpeedrunState {
 
                 NbtIo.writeCompressed(tag, infoFile.toPath());
                 SpeedrunRoulette.LOGGER.info("Saved run info to " + infoFile.getAbsolutePath());
-            } catch (Exception e) {
-                SpeedrunRoulette.LOGGER.error("Failed to save run info", e);
+            } else if (mc.player != null && mc.player.connection != null) {
+                SpeedrunNetwork.sendToServer(new SpeedrunNetwork.SaveRunInfoPacket(isVictory, time, objectiveName));
             }
-        } else if (mc.player != null) {
-            SpeedrunNetwork.sendToServer(new SpeedrunNetwork.SaveRunInfoPacket(isVictory, time, objectiveName));
+        } catch (Throwable t) {
+            SpeedrunRoulette.LOGGER.error("Failed to save run info", t);
         }
     }
 
@@ -457,34 +541,18 @@ public class SpeedrunState {
     public static void onClientTick() {
         Minecraft mc = Minecraft.getInstance();
 
-        // Auto create world logic must run even during transitions (button may become active a few ticks later)
-        if (autoTriggerCreateWorld && mc.screen instanceof CreateWorldScreen screen) {
-            for (net.minecraft.client.gui.components.events.GuiEventListener child : screen.children()) {
-                if (child instanceof Button btn) {
-                    if (btn.getMessage().equals(Component.translatable("selectWorld.create"))) {
-                         if (btn.active) {
-                             autoTriggerCreateWorld = false; // Set false BEFORE action to prevent recursion
-                             finishTransition();
-                             try {
-                                 pressButton(btn);
-                             } catch (Throwable t) {
-                                 try {
-                                      java.lang.reflect.Method onPressMethod = Button.class.getMethod("onPress");
-                                      onPressMethod.invoke(btn);
-                                 } catch (Throwable t2) {
-                                     SpeedrunRoulette.LOGGER.error("Failed to auto-press Create World", t2);
-                                 }
-                             }
-                         }
-                         break;
-                    }
-                }
+        // Never touch world/server state while saving or disconnecting.
+        if (isDisconnectingOrSaving()) {
+            // Only allowed work: finish CreateWorld auto-click once menus are fully idle.
+            if (autoTriggerCreateWorld && canAutoNavigateMenus() && mc.screen instanceof CreateWorldScreen screen) {
+                tryAutoPressCreateWorld(screen);
             }
+            return;
         }
 
-        // Safety: If we are in the process of giving up or restarting, do NOT run gameplay tick logic
-        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingNewRun || isTransitioning) {
-            return;
+        // Auto create world when CreateWorldScreen becomes ready (post-transition)
+        if (autoTriggerCreateWorld && canAutoNavigateMenus() && mc.screen instanceof CreateWorldScreen screen) {
+            tryAutoPressCreateWorld(screen);
         }
 
         // Safety: Ensure timer is not running if WheelScreen is open
@@ -492,19 +560,7 @@ public class SpeedrunState {
             resetTimer();
         }
 
-        // --- NEW SAFETY CHECK ---
-        // If the game is paused (saving/disconnecting), DO NOT access server level or player data heavily
         if (mc.level == null || mc.player == null) return;
-
-        // Also check if we are in the process of disconnecting/saving
-        if (mc.screen instanceof net.minecraft.client.gui.screens.LevelLoadingScreen) {
-            return;
-        }
-        if (mc.screen instanceof net.minecraft.client.gui.screens.GenericMessageScreen) {
-            return;
-        }
-
-        // Additional safety: check if connection is still valid
         if (mc.player.connection == null) return;
 
         if (mc.player != null) {
@@ -580,46 +636,10 @@ public class SpeedrunState {
                      }
                  }
 
-                  // 4. Structures via Server Level (Singleplayer Only - More reliable)
-                  if (mc.player.tickCount % 20 == 0 && !isTransitioning) {
-                      try {
-                          net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
-                          if (server != null && server.isRunning() && !server.isStopped()) {
-                              net.minecraft.server.level.ServerPlayer serverPlayer = server.getPlayerList().getPlayer(mc.player.getUUID());
-                              if (serverPlayer != null && serverPlayer.level() != null) {
-                                  net.minecraft.server.level.ServerLevel level = (net.minecraft.server.level.ServerLevel) serverPlayer.level();
-                                  net.minecraft.core.BlockPos pos = serverPlayer.blockPosition();
-
-                                  if (level.hasChunkAt(pos)) {
-                                       checkStructure(level, pos, BuiltinStructures.END_CITY, Component.translatable("gui.examplemod.split.end_city").getString());
-                                       checkStructure(level, pos, BuiltinStructures.ANCIENT_CITY, Component.translatable("gui.examplemod.split.ancient_city").getString());
-                                       checkStructure(level, pos, BuiltinStructures.SHIPWRECK, Component.translatable("gui.examplemod.split.shipwreck").getString());
-                                       checkStructure(level, pos, BuiltinStructures.OCEAN_MONUMENT, Component.translatable("gui.examplemod.split.ocean_monument").getString());
-                                       checkStructure(level, pos, BuiltinStructures.PILLAGER_OUTPOST, Component.translatable("gui.examplemod.split.pillager_outpost").getString());
-                                       checkStructure(level, pos, BuiltinStructures.BURIED_TREASURE, Component.translatable("gui.examplemod.split.buried_treasure").getString());
-                                       checkStructure(level, pos, BuiltinStructures.DESERT_PYRAMID, Component.translatable("gui.examplemod.split.desert_pyramid").getString());
-                                       checkStructure(level, pos, BuiltinStructures.FORTRESS, Component.translatable("gui.examplemod.split.fortress_found").getString());
-                                       checkStructure(level, pos, BuiltinStructures.BASTION_REMNANT, Component.translatable("gui.examplemod.split.bastion_found").getString());
-                                       checkStructure(level, pos, BuiltinStructures.STRONGHOLD, Component.translatable("gui.examplemod.split.stronghold_found").getString());
-                                       checkStructure(level, pos, BuiltinStructures.IGLOO, Component.translatable("gui.examplemod.split.igloo").getString());
-                                       checkStructure(level, pos, BuiltinStructures.JUNGLE_TEMPLE, Component.translatable("gui.examplemod.split.jungle_temple").getString());
-                                       checkStructure(level, pos, BuiltinStructures.SWAMP_HUT, Component.translatable("gui.examplemod.split.swamp_hut").getString());
-                                       checkStructure(level, pos, BuiltinStructures.WOODLAND_MANSION, Component.translatable("gui.examplemod.split.woodland_mansion").getString());
-                                       checkStructure(level, pos, BuiltinStructures.NETHER_FOSSIL, Component.translatable("gui.examplemod.split.nether_fossil").getString());
-
-                                       try {
-                                           checkStructure(level, pos, BuiltinStructures.TRIAL_CHAMBERS, Component.translatable("gui.examplemod.split.trial_chamber").getString());
-                                       } catch (NoSuchFieldError | NoClassDefFoundError e) {
-                                           // Ignore
-                                       }
-                                  }
-                              }
-                          }
-                      } catch (Exception e) {
-                          // Ignore errors during server access (e.g. shutdown)
-                      }
-                   }
-              }
+                  // Structure scans intentionally removed from client tick.
+                  // Accessing ServerLevel.structureManager from the client thread during
+                  // pause/disconnect freezes "Saving world" and can hang Minecraft exit.
+             }
 
              if (timerRunning && !manualPaused && !mc.isPaused()) {
                  if (areObjectivesComplete(mc.player)) {
@@ -1007,12 +1027,10 @@ public class SpeedrunState {
 
     public static void onScreenInit(ScreenEvent.Init.Post event) {
         if (event.getScreen() instanceof TitleScreen) {
-             // Add button to open ConfigScreen or WheelScreen
              event.addListener(Button.builder(Component.translatable("gui.examplemod.speedrun_config_button"), (btn) -> {
                  Minecraft.getInstance().setScreen(new SpeedrunConfigScreen(event.getScreen()));
              }).bounds(10, 10, 100, 20).build());
-             // Do NOT click Singleplayer here. ClientTick waits until the old server is fully stopped,
-             // then opens SelectWorldScreen. Clicking early races with "Saving world" and loops.
+             // Never auto-click Singleplayer here — races "Saving world".
         }
 
         if (event.getScreen() instanceof net.minecraft.client.gui.screens.worldselection.SelectWorldScreen) {
@@ -1025,6 +1043,7 @@ public class SpeedrunState {
                                  pressButton(btn);
                              } catch (Throwable t) {
                                  SpeedrunRoulette.LOGGER.error("SpeedrunState: Failed to click Create button", t);
+                                 cancelAutoNav();
                              }
                              break;
                         }
@@ -1033,37 +1052,46 @@ public class SpeedrunState {
             }
         }
 
-        // Handle CreateWorldScreen init too (try to click immediately if active)
         if (event.getScreen() instanceof CreateWorldScreen) {
-            if (autoTriggerCreateWorld) {
-                 for (net.minecraft.client.gui.components.events.GuiEventListener child : event.getScreen().children()) {
-                    if (child instanceof Button btn) {
-                        if (btn.getMessage().equals(Component.translatable("selectWorld.create"))) {
-                             if (btn.active) {
-                                 SpeedrunRoulette.LOGGER.info("SpeedrunState: Clicking 'Create' (Final)");
-                                 autoTriggerCreateWorld = false;
-                                 finishTransition();
-                                 try {
-                                     pressButton(btn);
-                                 } catch (Throwable t) {
-                                     SpeedrunRoulette.LOGGER.error("SpeedrunState: Failed to click Final Create button", t);
-                                 }
-                             } else {
-                                 SpeedrunRoulette.LOGGER.info("SpeedrunState: Final Create button not active yet.");
-                             }
-                             break;
+            if (autoTriggerCreateWorld && canAutoNavigateMenus()) {
+                tryAutoPressCreateWorld((CreateWorldScreen) event.getScreen());
+            }
+        }
+    }
+
+    private static void tryAutoPressCreateWorld(CreateWorldScreen screen) {
+        for (net.minecraft.client.gui.components.events.GuiEventListener child : screen.children()) {
+            if (child instanceof Button btn) {
+                if (btn.getMessage().equals(Component.translatable("selectWorld.create"))) {
+                    if (btn.active) {
+                        SpeedrunRoulette.LOGGER.info("SpeedrunState: Clicking 'Create' (Final)");
+                        autoTriggerCreateWorld = false;
+                        finishTransition();
+                        try {
+                            pressButton(btn);
+                        } catch (Throwable t) {
+                            SpeedrunRoulette.LOGGER.error("SpeedrunState: Failed to click Final Create button", t);
+                            cancelAutoNav();
                         }
                     }
+                    break;
                 }
             }
         }
     }
 
     private static void pressButton(Button btn) throws Exception {
-        java.lang.reflect.Field f = Button.class.getDeclaredField("onPress");
-        f.setAccessible(true);
-        Button.OnPress onPress = (Button.OnPress) f.get(btn);
-        onPress.onPress(btn);
+        try {
+            java.lang.reflect.Field f = Button.class.getDeclaredField("onPress");
+            f.setAccessible(true);
+            Button.OnPress onPress = (Button.OnPress) f.get(btn);
+            onPress.onPress(btn);
+            return;
+        } catch (NoSuchFieldException ignored) {
+            // Fall through — mapped name may differ
+        }
+        java.lang.reflect.Method onPressMethod = Button.class.getMethod("onPress");
+        onPressMethod.invoke(btn);
     }
 
     private static void checkAdvancement(net.minecraft.client.multiplayer.ClientAdvancements advancements, String id, String splitName) {

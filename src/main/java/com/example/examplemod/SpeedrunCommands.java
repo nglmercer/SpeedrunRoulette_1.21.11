@@ -38,19 +38,8 @@ public class SpeedrunCommands {
                 // /speedrun new - Start a new run with new objectives
                 .then(Commands.literal("new")
                     .executes(context -> {
-                        if (SpeedrunState.hasActiveObjectives()) {
-                            SpeedrunState.saveRunInfo(false);
-                        }
-                        SpeedrunRoulette.pendingNewRun = true;
-                        SpeedrunState.prepareForNewGame();
-                        SpeedrunState.autoTriggerCreateWorld = true;
-                        SpeedrunRoulette.hasCheckedAutoOpen = false;
-                        SpeedrunState.finishTransition();
                         context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_new_run"), false);
-                        var mc = net.minecraft.client.Minecraft.getInstance();
-                        if (mc.level != null) {
-                            mc.disconnect(new net.minecraft.client.gui.screens.TitleScreen(), false);
-                        }
+                        SpeedrunState.beginNewRunAndDisconnect();
                         return 1;
                     })
                 )
@@ -58,13 +47,23 @@ public class SpeedrunCommands {
                 // /speedrun retry - Retry with same objectives
                 .then(Commands.literal("retry")
                     .executes(context -> {
+                        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || SpeedrunState.isTransitioning) {
+                            return 0;
+                        }
                         SpeedrunRoulette.pendingReplay = true;
-                        SpeedrunState.saveRunInfo(false);
-                        SpeedrunState.prepareForRetry();
+                        SpeedrunState.isTransitioning = true;
+                        try {
+                            SpeedrunState.saveRunInfo(false);
+                        } catch (Throwable ignored) {}
                         context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_retry"), false);
                         var mc = net.minecraft.client.Minecraft.getInstance();
                         if (mc.level != null) {
+                            // prepareForRetry happens on TitleScreen after disconnect completes
                             mc.disconnect(new net.minecraft.client.gui.screens.TitleScreen(), false);
+                        } else {
+                            SpeedrunState.prepareForRetry();
+                            SpeedrunRoulette.pendingReplay = false;
+                            SpeedrunState.finishTransition();
                         }
                         return 1;
                     })
@@ -82,17 +81,8 @@ public class SpeedrunCommands {
                 // /speedrun reset - Reset world and create new one
                 .then(Commands.literal("reset")
                     .executes(context -> {
-                        SpeedrunState.saveRunInfo(false);
-                        SpeedrunRoulette.pendingNewRun = true;
-                        SpeedrunState.prepareForNewGame();
-                        SpeedrunState.autoTriggerCreateWorld = true;
-                        SpeedrunRoulette.hasCheckedAutoOpen = false;
-                        SpeedrunState.finishTransition();
                         context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_reset_world"), false);
-                        var mc = net.minecraft.client.Minecraft.getInstance();
-                        if (mc.level != null) {
-                            mc.disconnect(new net.minecraft.client.gui.screens.TitleScreen(), false);
-                        }
+                        SpeedrunState.beginNewRunAndDisconnect();
                         return 1;
                     })
                 )

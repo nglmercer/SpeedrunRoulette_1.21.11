@@ -143,28 +143,23 @@ public class SpeedrunRoulette {
             }
             
             // Auto-Navigation for New Run — only after the integrated server is fully gone
-             if (SpeedrunState.autoTriggerCreateWorld && SpeedrunState.canAutoNavigateMenus()) {
-                  if (mc.screen instanceof net.minecraft.client.gui.screens.TitleScreen) {
-                      SpeedrunRoulette.LOGGER.info("AutoNav: Transitioning TitleScreen -> SelectWorldScreen");
-                      mc.setScreen(new SelectWorldScreen(mc.screen));
-                  }
-                  // SelectWorldScreen / CreateWorldScreen button clicks are handled in SpeedrunState.onScreenInit
-             }
-
-            // Folder renaming logic removed as per request to prevent infinite loading.
-            // Renaming is now handled by setting LevelName in onServerStopping.
-
-
-            if (OPEN_WHEEL_KEY != null && OPEN_WHEEL_KEY.consumeClick()) {
-                SpeedrunState.openWheelOrReminder();
+            if (SpeedrunState.autoTriggerCreateWorld && SpeedrunState.canAutoNavigateMenus()) {
+                SpeedrunState.tickAutoNavFromTitle(mc);
             }
-            if (PAUSE_TIMER_KEY != null && PAUSE_TIMER_KEY.consumeClick()) {
-                SpeedrunState.toggleManualPause();
+
+            // Skip input while saving/disconnecting so we don't open menus on top of "Saving world"
+            if (!SpeedrunState.isDisconnectingOrSaving()) {
+                if (OPEN_WHEEL_KEY != null && OPEN_WHEEL_KEY.consumeClick()) {
+                    SpeedrunState.openWheelOrReminder();
+                }
+                if (PAUSE_TIMER_KEY != null && PAUSE_TIMER_KEY.consumeClick()) {
+                    SpeedrunState.toggleManualPause();
+                }
+                if (TOGGLE_HUD_KEY != null && TOGGLE_HUD_KEY.consumeClick()) {
+                    SpeedrunState.toggleHud();
+                }
             }
-            if (TOGGLE_HUD_KEY != null && TOGGLE_HUD_KEY.consumeClick()) {
-                SpeedrunState.toggleHud();
-            }
-            
+
             SpeedrunState.onClientTick();
         }
 
@@ -176,14 +171,13 @@ public class SpeedrunRoulette {
 
                 if (startingNew) {
                     LOGGER.info("TitleScreen: Preparing for New Game (Clear Objectives)");
-                    // May already have been prepared by beginGiveUpAndDisconnect / commands
-                    if (SpeedrunState.hasActiveObjectives() || SpeedrunState.isKeepObjectivesForNextRun()) {
-                        SpeedrunState.prepareForNewGame();
-                    }
+                    SpeedrunState.prepareForNewGame();
                     SpeedrunState.autoTriggerCreateWorld = true;
+                    SpeedrunState.resetAutoNavProgress();
                 } else if (startingRetry) {
                     LOGGER.info("TitleScreen: Preparing for Retry (Keep Objectives)");
                     SpeedrunState.prepareForRetry();
+                    SpeedrunState.autoTriggerCreateWorld = false;
                 }
 
                 if (startingNew || startingRetry) {
@@ -193,8 +187,7 @@ public class SpeedrunRoulette {
                     SpeedrunRoulette.pendingVictoryTime = null;
                     SpeedrunRoulette.pendingVictoryObjectiveName = null;
                     SpeedrunRoulette.hasCheckedAutoOpen = false;
-                    // Keep isTransitioning true while auto-nav runs; finish when world create starts
-                    // or when auto-nav is not requested (retry just returns to menu flow).
+                    // Keep isTransitioning while auto-nav runs; finish when Create is pressed.
                     if (!SpeedrunState.autoTriggerCreateWorld) {
                         SpeedrunState.finishTransition();
                     }

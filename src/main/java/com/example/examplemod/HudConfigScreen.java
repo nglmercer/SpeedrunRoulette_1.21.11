@@ -26,7 +26,8 @@ public class HudConfigScreen extends Screen {
     @Override
     protected void init() {
         int tabY = 28;
-        int tabX = this.width - TAB_WIDTH * TAB_KEYS.length - (TAB_KEYS.length - 1) * 4;
+        int totalTabsWidth = TAB_KEYS.length * TAB_WIDTH + (TAB_KEYS.length - 1) * 4;
+        int tabX = (this.width - totalTabsWidth) / 2;
         for (int i = 0; i < TAB_KEYS.length; i++) {
             final int idx = i;
             this.addRenderableWidget(Button.builder(
@@ -75,7 +76,12 @@ public class HudConfigScreen extends Screen {
             this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_background", Config.HUD_SHOW_BACKGROUND)); y += gap;
             this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_border", Config.HUD_SHOW_BORDER)); y += gap;
             this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_objectives", Config.HUD_SHOW_OBJECTIVES)); y += gap;
-            this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_stats", Config.HUD_SHOW_STATS)); y += gap;
+            this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_stats", Config.HUD_SHOW_STATS)); y += gap + 4;
+
+            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.text_color", Config.HUD_TEXT_COLOR); y += gap;
+            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.timer_color", Config.HUD_TIMER_COLOR); y += gap;
+            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.stats_color", Config.HUD_STATS_COLOR); y += gap;
+            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.completed_color", Config.HUD_COMPLETED_COLOR); y += gap;
         } else {
             this.addRenderableWidget(Button.builder(
                 Component.translatable("gui.examplemod.end_config.preview_toggle", previewVictory
@@ -212,20 +218,21 @@ public class HudConfigScreen extends Screen {
                 renderLosePreview(g, previewX, previewY + 16, previewW, previewH - 20);
             }
         }
-
-        if (maxScroll > 0) {
-            g.drawString(this.font, Component.translatable("gui.examplemod.hud_config.scroll_hint"), 15, this.height - 38, 0xFF666666);
-        }
     }
 
     private void renderVictoryPreview(GuiGraphics g, int x, int y, int w, int h) {
         int bgAlpha = (int)(Config.END_BG_OPACITY.get() * 255) & 0xFF;
         g.fill(x, y, x + w, y + h, (bgAlpha << 24));
 
+        int textColor = SpeedrunHud.parseColor(Config.HUD_TEXT_COLOR.get(), 0xFFFFFFFF);
+        int timerColor = SpeedrunHud.parseColor(Config.HUD_TIMER_COLOR.get(), 0xFF55FF55);
+        int statsColor = SpeedrunHud.parseColor(Config.HUD_STATS_COLOR.get(), 0xFFFFFFFF);
+        int completedColor = SpeedrunHud.parseColor(Config.HUD_COMPLETED_COLOR.get(), 0xFF55FF55);
+
         int cx = x + w / 2;
         int cy = y + 10;
 
-        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.victory_title").withStyle(net.minecraft.ChatFormatting.BOLD, net.minecraft.ChatFormatting.GOLD), cx, cy, 0xFFD700);
+        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.victory_title").withStyle(net.minecraft.ChatFormatting.BOLD, net.minecraft.ChatFormatting.GOLD), cx, cy, completedColor);
         cy += 14;
 
         if (Config.END_SHOW_ICON.get()) {
@@ -237,23 +244,23 @@ public class HudConfigScreen extends Screen {
             cy += 22;
         }
 
-        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.preview_emerald"), cx, cy, 0xFFFFFFFF);
+        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.preview_emerald"), cx, cy, textColor);
         cy += 12;
 
-        g.drawCenteredString(this.font, "00:42.000", cx, cy, 0xFF55FF55);
+        g.drawCenteredString(this.font, "00:42.000", cx, cy, timerColor);
         cy += 14;
 
         if (Config.END_SHOW_STATS.get()) {
-            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.deaths", 3), cx, cy, 0xFFFFFFFF);
+            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.deaths", 3), cx, cy, statsColor);
             cy += 10;
-            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.distance", 512), cx, cy, 0xFFFFFFFF);
+            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.distance", 512), cx, cy, statsColor);
             cy += 10;
         }
 
         if (Config.END_SHOW_SPLITS.get()) {
-            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.splits").withStyle(net.minecraft.ChatFormatting.UNDERLINE), cx, cy, 0xFFAAAAAA);
+            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.splits").withStyle(net.minecraft.ChatFormatting.UNDERLINE), cx, cy, textColor);
             cy += 10;
-            g.drawCenteredString(this.font, "Nether: 02:15", cx, cy, 0xFFDDDDDD);
+            g.drawCenteredString(this.font, "Nether: 02:15", cx, cy, textColor);
         }
     }
 
@@ -261,10 +268,15 @@ public class HudConfigScreen extends Screen {
         int bgAlpha = (int)(Config.END_BG_OPACITY.get() * 255) & 0xFF;
         g.fill(x, y, x + w, y + h, (bgAlpha << 24) | 0x220000);
 
+        int textColor = SpeedrunHud.parseColor(Config.HUD_TEXT_COLOR.get(), 0xFFFFFFFF);
+        int timerColor = SpeedrunHud.parseColor(Config.HUD_TIMER_COLOR.get(), 0xFFFF5555);
+        int statsColor = SpeedrunHud.parseColor(Config.HUD_STATS_COLOR.get(), 0xFFFFFFFF);
+        int completedColor = SpeedrunHud.parseColor(Config.HUD_COMPLETED_COLOR.get(), 0xFFFF5555);
+
         int cx = x + w / 2;
         int cy = y + 10;
 
-        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.defeat_title").withStyle(net.minecraft.ChatFormatting.BOLD, net.minecraft.ChatFormatting.RED), cx, cy, 0xFFFF5555);
+        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.defeat_title").withStyle(net.minecraft.ChatFormatting.BOLD, net.minecraft.ChatFormatting.RED), cx, cy, completedColor);
         cy += 14;
 
         if (Config.END_SHOW_ICON.get()) {
@@ -276,13 +288,13 @@ public class HudConfigScreen extends Screen {
             cy += 22;
         }
 
-        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.defeat_subtitle"), cx, cy, 0xFFFFFFFF);
+        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.defeat_subtitle"), cx, cy, textColor);
         cy += 14;
 
-        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.winner_label", "Player2").withStyle(net.minecraft.ChatFormatting.GOLD), cx, cy, 0xFFFFD700);
+        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.winner_label", "Player2").withStyle(net.minecraft.ChatFormatting.GOLD), cx, cy, completedColor);
         cy += 14;
 
-        g.drawCenteredString(this.font, "00:38.000", cx, cy, 0xFFFF5555);
+        g.drawCenteredString(this.font, "00:38.000", cx, cy, timerColor);
         cy += 14;
 
         java.util.List<Objective> objs = SpeedrunState.getObjectives();
@@ -290,11 +302,11 @@ public class HudConfigScreen extends Screen {
             Component objName = objs.size() > 1
                 ? Component.translatable("gui.examplemod.item_list", objs.size())
                 : objs.get(0).getDisplayName();
-            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.objective_label").append(" ").append(objName), cx, cy, 0xFFAAAAAA);
+            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.objective_label").append(" ").append(objName), cx, cy, textColor);
             cy += 14;
         }
 
-        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.mode.challenge").withStyle(net.minecraft.ChatFormatting.DARK_RED), cx, cy, 0xFFFFAAAA);
+        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.mode.challenge").withStyle(net.minecraft.ChatFormatting.DARK_RED), cx, cy, completedColor);
     }
 
     private class HueSlider extends AbstractSliderButton {

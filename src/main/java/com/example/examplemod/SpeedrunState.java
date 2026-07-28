@@ -11,7 +11,6 @@ import java.util.Map;
 
 public class SpeedrunState {
     private static List<Objective> objectives = new ArrayList<>();
-    private static List<Objective> keptObjectives = new ArrayList<>();
     private static boolean objectivesCompleted = false;
     private static boolean objectivesFresh = false;
     private static boolean objectivesLoaded = false;
@@ -23,8 +22,6 @@ public class SpeedrunState {
     private static String lastWinnerName = "";
     private static String lastWinnerUuid = "";
     private static boolean finishClaimPending = false;
-
-    public static boolean keepObjectivesForNextRun = false;
 
     private static boolean waitingForServerStop = false;
     private static String disconnectLabel = "";
@@ -230,18 +227,14 @@ public class SpeedrunState {
     // --- Lifecycle ---
 
     public static void prepareForRetry() {
-        keptObjectives = new ArrayList<>(objectives);
-        keepObjectivesForNextRun = true;
         SpeedrunTimer.reset();
         SpeedrunSplits.reset();
         objectivesFresh = true;
-        objectivesLoaded = true;
-        SpeedrunRoulette.LOGGER.info("[Retry] Backed up {} objectives for next run", keptObjectives.size());
+        objectivesLoaded = false;
+        SpeedrunRoulette.LOGGER.info("[Retry] Prepared for retry — objectives will reload from world data");
     }
 
     public static void prepareForNewGame() {
-        keepObjectivesForNextRun = false;
-        keptObjectives.clear();
         clearObjectives();
         SpeedrunTimer.reset();
         SpeedrunSplits.reset();
@@ -334,6 +327,20 @@ public class SpeedrunState {
 
             net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
             if (server != null) {
+                if (label.equals("RetrySameSeed") || label.equals("RetryNewSeed")) {
+                    SpeedrunWorldData data = SpeedrunWorldData.get(server);
+                    data.clearRunResult();
+                    for (Objective obj : data.getObjectives()) {
+                        obj.setForceCompleted(false);
+                    }
+                    data.setDirty();
+                    SpeedrunRoulette.LOGGER.info("[Transition][{}] Cleared run result and forceCompleted in world data", label);
+                } else if (label.equals("NewRun") || label.equals("GiveUp")) {
+                    SpeedrunWorldData data = SpeedrunWorldData.get(server);
+                    data.clearRunResult();
+                    data.setObjectives(new ArrayList<>());
+                    SpeedrunRoulette.LOGGER.info("[Transition][{}] Cleared world data for new run", label);
+                }
                 SpeedrunRoulette.LOGGER.info("[Transition][{}] Halting integrated server (non-blocking)...", label);
                 server.halt(false);
                 waitingForServerStop = true;
@@ -468,33 +475,19 @@ public class SpeedrunState {
             loadObjectivesFromWorld();
         }
 
-        if (keepObjectivesForNextRun && objectives.isEmpty() && !keptObjectives.isEmpty()) {
-            SpeedrunRoulette.LOGGER.info("[AutoOpen] Restoring {} kept objectives from backup", keptObjectives.size());
-            objectives = new ArrayList<>(keptObjectives);
-            objectivesFresh = true;
-            objectivesLoaded = true;
-        }
-
         boolean hasObjs = !objectives.isEmpty();
-        SpeedrunRoulette.LOGGER.info("[AutoOpen] objectivesLoaded={}, hasObjs={}, keepForNext={}, fresh={}, keptBackup={}",
-            objectivesLoaded, hasObjs, keepObjectivesForNextRun, objectivesFresh, keptObjectives.size());
+        SpeedrunRoulette.LOGGER.info("[AutoOpen] objectivesLoaded={}, hasObjs={}, fresh={}",
+            objectivesLoaded, hasObjs, objectivesFresh);
 
-        if (!keepObjectivesForNextRun && hasObjs && !objectivesFresh) {
-            SpeedrunRoulette.LOGGER.info("[AutoOpen] Clearing stale objectives");
-            clearObjectives();
-            hasObjs = false;
+        if (hasObjs && objectivesFresh) {
+            saveObjectivesToWorld();
+            objectivesFresh = false;
         }
 
         if (!hasObjs) {
             SpeedrunRoulette.LOGGER.info("[AutoOpen] No objectives -> opening wheel");
             openWheelNow();
         } else {
-            if (keepObjectivesForNextRun && objectivesFresh) {
-                SpeedrunRoulette.LOGGER.info("[AutoOpen] Saving {} kept objectives to world", objectives.size());
-                saveObjectivesToWorld();
-                objectivesFresh = false;
-                keptObjectives.clear();
-            }
             if (!SpeedrunTimer.isRunning()) SpeedrunTimer.start();
             Minecraft.getInstance().player.displayClientMessage(
                 Component.translatable("gui.examplemod.objectives_active"), true);
@@ -708,12 +701,6 @@ public class SpeedrunState {
 
     /** @deprecated Use {@link SpeedrunAutoNav#isAutoTriggerCreateWorld()} directly */
     @Deprecated public static boolean isAutoTriggerCreateWorld() { return SpeedrunAutoNav.isAutoTriggerCreateWorld(); }
-
-    /** @deprecated Use field directly */
-    @Deprecated public static void setKeepObjectivesForNextRun(boolean v) { keepObjectivesForNextRun = v; }
-
-    /** @deprecated Use field directly */
-    @Deprecated public static boolean isKeepObjectivesForNextRun() { return keepObjectivesForNextRun; }
 
     /** @deprecated Use {@link SpeedrunRunInfo.RunInfo} directly */
     @Deprecated public static class RunInfo extends SpeedrunRunInfo.RunInfo {

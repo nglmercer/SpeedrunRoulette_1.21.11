@@ -206,6 +206,10 @@ public class SpeedrunState {
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.level != null) {
+            net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
+            if (server != null) {
+                SpeedrunRoulette.pendingLevelId = SpeedrunRunInfo.getLevelId(server);
+            }
             mc.disconnect(new TitleScreen(), false);
         } else {
             SpeedrunAutoNav.autoTriggerCreateWorld = true;

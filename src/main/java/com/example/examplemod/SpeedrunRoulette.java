@@ -90,14 +90,20 @@ public class SpeedrunRoulette {
         SpeedrunNetwork.register(event);
     }
 
+    public static String pendingLevelId = null;
+
     private static void deleteWorldSave() {
         try {
             Minecraft mc = Minecraft.getInstance();
-            if (mc.level == null) return;
-            net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
-            if (server == null) return;
-            String levelId = SpeedrunRunInfo.getLevelId(server);
-            if (levelId == null) return;
+            String levelId = pendingLevelId;
+            pendingLevelId = null;
+            if (levelId == null) {
+                if (mc.level == null) return;
+                net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
+                if (server == null) return;
+                levelId = SpeedrunRunInfo.getLevelId(server);
+                if (levelId == null) return;
+            }
             File savesDir = mc.gameDirectory.toPath().resolve("saves").toFile();
             File levelDir = new File(savesDir, levelId);
             if (levelDir.isDirectory()) {

@@ -8,6 +8,7 @@
   "itemGroup.examplemod": "速通模组",
   "gui.examplemod.spin_the_wheel": "旋转轮盘",
   "gui.examplemod.lets_go": "开始！",
+  "gui.examplemod.countdown_go": "开始！",
   "gui.examplemod.selected_objectives": "已选目标！",
   "gui.examplemod.victory": "胜利",
   "gui.examplemod.play_again": "再玩一次（相同目标）",

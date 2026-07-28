@@ -8,6 +8,7 @@
   "itemGroup.examplemod": "Speedrun Mod",
   "gui.examplemod.spin_the_wheel": "Spin the Wheel",
   "gui.examplemod.lets_go": "Let's Go!",
+  "gui.examplemod.countdown_go": "GO!",
   "gui.examplemod.selected_objectives": "Selected Objectives!",
   "gui.examplemod.victory": "Victory",
   "gui.examplemod.play_again": "Play Again (Same Objective)",

@@ -277,9 +277,8 @@ public class WheelScreen extends Screen {
                     guiGraphics.pose().translate(-cx, -(float)(textY + l * (9 * textScale)));
                 }
 
-                // Check for hover
-                // We use a generous hit box covering the icon and some text area
-                if (mouseX >= x && mouseX <= x + itemSize && mouseY >= y && mouseY <= y + rowHeight) {
+                // Check for hover - only over the icon area to prevent overlap with adjacent rows
+                if (mouseX >= x && mouseX <= x + itemSize && mouseY >= y && mouseY <= y + itemSize + 4) {
                     hoveredObjective = obj;
                 }
             }

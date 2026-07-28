@@ -89,7 +89,7 @@ public class PoolCustomizationScreen extends Screen {
         }).bounds(midX + 2, 45, 50, 20).tooltip(Tooltip.create(Component.translatable("gui.examplemod.pool_config.disable_all"))).build());
 
         // List
-        this.objectiveList = new ObjectiveList(this.minecraft, this.width, this.height - 105, 70, 44);
+        this.objectiveList = new ObjectiveList(this.minecraft, this.width, this.height - 105, 70, 40);
         this.addRenderableWidget(this.objectiveList);
         this.updateFilter(this.searchBox.getValue());
 
@@ -116,8 +116,31 @@ public class PoolCustomizationScreen extends Screen {
     public boolean handleMouseClick(double mouseX, double mouseY, int button) {
         // Manual hit test for widgets in the list
         if (this.objectiveList != null) {
+            int listTop = objectiveList.getTop();
+            int listBottom = objectiveList.getBottom();
+            int rowWidth = objectiveList.getRowWidth();
+            int cols = 3;
+            int gap = 10;
+            int totalGapWidth = gap * (cols - 1);
+            int itemWidth = (rowWidth - totalGapWidth) / cols;
+            int itemHeight = 40;
+            int rowLeft = objectiveList.getRowLeft();
+
             for (ObjectiveList.ObjectiveRowEntry entry : this.objectiveList.children()) {
-                for (ObjectiveWidget widget : entry.widgets) {
+                int index = objectiveList.children().indexOf(entry);
+                if (index < 0) continue;
+                int rowTop = objectiveList.getRowTop(index);
+                int rowBottom = rowTop + itemHeight;
+                if (rowBottom <= listTop || rowTop >= listBottom) continue;
+
+                for (int i = 0; i < entry.widgets.size(); i++) {
+                    ObjectiveWidget widget = entry.widgets.get(i);
+                    int itemX = rowLeft + i * (itemWidth + gap);
+                    widget.setX(itemX);
+                    widget.setY(rowTop);
+                    widget.setWidth(itemWidth);
+                    widget.setHeight(itemHeight);
+
                     if (widget.isMouseOver(mouseX, mouseY)) {
                         widget.playDownSound(Minecraft.getInstance().getSoundManager());
                         String id = widget.objective.getId();

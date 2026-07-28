@@ -63,7 +63,8 @@ public class LoseScreen extends Screen {
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         this.renderTransparentBackground(g);
-        g.fill(0, 0, this.width, this.height, 0xAA220000);
+        int bgAlpha = (int)(Config.END_BG_OPACITY.get() * 255) & 0xFF;
+        g.fill(0, 0, this.width, this.height, (bgAlpha << 24) | 0x220000);
 
         super.render(g, mouseX, mouseY, partialTick);
 

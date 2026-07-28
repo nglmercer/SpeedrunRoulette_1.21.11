@@ -13,6 +13,7 @@ public class SpeedrunConfigScreen extends Screen {
     private Button objectiveCountLabel;
     private Button autoOpenLabel;
     private Button autoStartLabel;
+    private Button gameModeLabel;
     private Button languageLabel;
 
     public SpeedrunConfigScreen(Screen parent) {
@@ -44,6 +45,30 @@ public class SpeedrunConfigScreen extends Screen {
             (btn) -> {
                 Config.AUTO_START.set(!Config.AUTO_START.get());
                 btn.setMessage(Component.translatable("gui.examplemod.config.auto_start", (Config.AUTO_START.get() ? Component.translatable("gui.examplemod.on") : Component.translatable("gui.examplemod.off"))));
+            }
+        ).bounds(x, y, w, h).build());
+
+        y += gap;
+        // Multiplayer game mode: Cooperative (default) / Challenge (VS)
+        gameModeLabel = this.addRenderableWidget(Button.builder(
+            Component.translatable("gui.examplemod.config.game_mode", Config.getGameMode().displayName()),
+            (btn) -> {
+                SpeedrunGameMode next = Config.getGameMode().next();
+                Config.setGameMode(next);
+                btn.setMessage(Component.translatable("gui.examplemod.config.game_mode", next.displayName()));
+                // If currently in a world, push mode to server so multiplayer stays in sync
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player != null && mc.level != null) {
+                    SpeedrunState.setActiveGameMode(next);
+                    net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
+                    if (server != null) {
+                        SpeedrunWorldData data = SpeedrunWorldData.get(server);
+                        data.setGameMode(next);
+                        SpeedrunNetwork.broadcastRunState(server);
+                    } else {
+                        SpeedrunNetwork.sendToServer(new SpeedrunNetwork.SetGameModePacket(next));
+                    }
+                }
             }
         ).bounds(x, y, w, h).build());
 

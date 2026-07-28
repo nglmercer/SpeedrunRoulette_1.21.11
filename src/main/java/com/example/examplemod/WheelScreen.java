@@ -41,17 +41,13 @@ public class WheelScreen extends Screen {
     }
 
     private void confirmSelection() {
+        // Use configured default mode (COOPERATIVE by default) so all multiplayer
+        // clients receive the same rolled sample under that mode.
+        SpeedrunState.setActiveGameMode(Config.getGameMode());
         SpeedrunState.setObjectives(new ArrayList<>(winners));
         SpeedrunState.startTimer();
-
-        Minecraft mc = Minecraft.getInstance();
-        net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
-        if (server != null) {
-            SpeedrunWorldData data = SpeedrunWorldData.get(server);
-            data.setObjectives(winners);
-        } else if (mc.player != null) {
-            SpeedrunNetwork.sendToServer(new SpeedrunNetwork.SaveObjectivesPacket(new ArrayList<>(winners)));
-        }
+        // setObjectives -> saveObjectivesToWorld already broadcasts run state on host
+        // and sends SaveObjectivesPacket (with mode) on dedicated multiplayer.
 
         this.onClose();
     }

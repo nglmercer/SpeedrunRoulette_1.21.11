@@ -333,20 +333,9 @@ public class SpeedrunRoulette {
         @SubscribeEvent
         public void onPlayerLoggedIn(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
             if (event.getEntity() instanceof ServerPlayer player) {
-                net.minecraft.server.MinecraftServer server = null;
-                if (player.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
-                    server = serverLevel.getServer();
-                }
-
-                if (server != null) {
-                    SpeedrunWorldData data = SpeedrunWorldData.get(server);
-                    List<Objective> saved = data.getObjectives();
-                    if (!saved.isEmpty()) {
-                        SpeedrunNetwork.sendToPlayer(new SpeedrunNetwork.SyncObjectivesPacket(saved), player);
-                    } else {
-                        SpeedrunNetwork.sendToPlayer(new SpeedrunNetwork.SyncObjectivesPacket(new java.util.ArrayList<>()), player);
-                    }
-                }
+                // Sync full run state (shared objectives + mode + finish) so multiplayer
+                // guests always get the same speedrun sample as the host.
+                SpeedrunNetwork.sendRunStateToPlayer(player);
             }
         }
 
@@ -375,10 +364,29 @@ public class SpeedrunRoulette {
                     String advId = event.getAdvancement().id().toString();
                     for (Objective obj : objs) {
                         if (obj.getType() == Objective.Type.ADVANCEMENT && advId.equals(obj.getAdvancementId())) {
-                            LOGGER.info("Advancement completed: " + advId);
-                            obj.setForceCompleted(true);
-                            data.setObjectives(objs);
-                            SpeedrunNetwork.sendToAllPlayers(new SpeedrunNetwork.SyncObjectivesPacket(new ArrayList<>(objs)));
+                            LOGGER.info("Advancement completed: " + advId + " by " + player.getGameProfile().name());
+
+                            // Cooperative: share advancement progress with the whole team.
+                            // Challenge: each player must earn the advancement themselves.
+                            if (data.getGameMode() == SpeedrunGameMode.COOPERATIVE) {
+                                obj.setForceCompleted(true);
+                                data.setObjectives(objs);
+                                SpeedrunNetwork.broadcastRunState(server);
+                            }
+
+                            // In either mode, if this player now has all objectives, claim finish.
+                            boolean allDone = true;
+                            for (Objective o : objs) {
+                                if (!o.isCompleted(player)) {
+                                    allDone = false;
+                                    break;
+                                }
+                            }
+                            if (allDone && !data.isRunFinished()) {
+                                String time = "--:--";
+                                // Client will also claim with real timer; this covers pure-server edge cases
+                                SpeedrunNetwork.handleClaimFinish(player, time);
+                            }
                             break;
                         }
                     }

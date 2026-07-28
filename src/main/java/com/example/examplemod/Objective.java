@@ -69,6 +69,7 @@ public class Objective {
     public void setForceCompleted(boolean forceCompleted) { this.forceCompleted = forceCompleted; }
 
     public boolean isCompleted(Player player) {
+        // forceCompleted is used in cooperative mode to share advancement progress across the team.
         if (forceCompleted) return true;
         
         if (type == Type.ITEM || type == Type.BLOCK) {
@@ -96,9 +97,43 @@ public class Objective {
                 } catch (Throwable e) {
                     // Ignore
                 }
+            } else {
+                // Client-side: check this player's own advancement progress (needed for Challenge mode)
+                return isAdvancementDoneOnClient(advancementId);
             }
         }
         
+        return false;
+    }
+
+    private static boolean isAdvancementDoneOnClient(String advId) {
+        try {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            if (mc.player == null || mc.player.connection == null) return false;
+            net.minecraft.client.multiplayer.ClientAdvancements advancements = mc.player.connection.getAdvancements();
+            if (advancements == null) return false;
+
+            net.minecraft.resources.Identifier loc = net.minecraft.resources.Identifier.tryParse(advId);
+            if (loc == null) return false;
+
+            java.lang.reflect.Field progressField =
+                    net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredField("progress");
+            progressField.setAccessible(true);
+            java.util.Map<?, ?> progressMap = (java.util.Map<?, ?>) progressField.get(advancements);
+
+            for (java.util.Map.Entry<?, ?> entry : progressMap.entrySet()) {
+                Object holder = entry.getKey();
+                Object prog = entry.getValue();
+                java.lang.reflect.Method idMethod = holder.getClass().getMethod("id");
+                net.minecraft.resources.Identifier id = (net.minecraft.resources.Identifier) idMethod.invoke(holder);
+                if (id.equals(loc)) {
+                    java.lang.reflect.Method isDoneMethod = prog.getClass().getMethod("isDone");
+                    return (boolean) isDoneMethod.invoke(prog);
+                }
+            }
+        } catch (Throwable t) {
+            // Ignore reflection / dist issues
+        }
         return false;
     }
 

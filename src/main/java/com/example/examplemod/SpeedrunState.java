@@ -476,14 +476,10 @@ public class SpeedrunState {
             if (SpeedrunTimer.isRunning() && !SpeedrunTimer.isPaused() && !mc.isPaused()) {
                 if (!runFinished && !finishClaimPending && !objectivesCompleted
                         && areObjectivesComplete(mc.player)) {
-                    String time = SpeedrunTimer.getFormattedTimeFromNanos(
-                            SpeedrunTimer.isCompleted()
-                                    ? SpeedrunTimer.getFinalElapsedNanos()
-                                    : SpeedrunTimer.getElapsedNanosSafe());
+                    String time = SpeedrunTimer.currentFormattedTime();
 
                     // Multiplayer / LAN: server decides winner so challenge races stay fair.
-                    // Singleplayer integrated host still claims through the same path so co-op
-                    // LAN guests get the result packet too.
+                    // Integrated host resolves on the server thread so LAN guests get the result.
                     finishClaimPending = true;
                     SpeedrunRoulette.pendingVictoryTime = time;
 
@@ -499,24 +495,18 @@ public class SpeedrunState {
 
                     net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
                     if (server != null) {
-                        // Host of integrated server: resolve finish on server thread
+                        final java.util.UUID localId = mc.player.getUUID();
                         server.execute(() -> {
-                            if (mc.player instanceof net.minecraft.server.level.ServerPlayer sp) {
-                                SpeedrunNetwork.handleClaimFinish(sp, time);
-                            } else {
-                                // Client player entity on host — find matching ServerPlayer
-                                for (net.minecraft.server.level.ServerPlayer sp : server.getPlayerList().getPlayers()) {
-                                    if (sp.getUUID().equals(mc.player.getUUID())) {
-                                        SpeedrunNetwork.handleClaimFinish(sp, time);
-                                        break;
-                                    }
+                            for (net.minecraft.server.level.ServerPlayer sp : server.getPlayerList().getPlayers()) {
+                                if (sp.getUUID().equals(localId)) {
+                                    SpeedrunNetwork.handleClaimFinish(sp, time);
+                                    break;
                                 }
                             }
                         });
                     } else if (mc.player.connection != null) {
                         SpeedrunNetwork.sendToServer(new SpeedrunNetwork.ClaimFinishPacket(time));
                     } else {
-                        // Offline fallback: local-only victory
                         finishClaimPending = false;
                         objectivesCompleted = true;
                         SpeedrunTimer.markCompleted();
@@ -528,9 +518,6 @@ public class SpeedrunState {
             }
         }
     }
-
-    /** Safe elapsed helper when timer may not have marked completed yet. */
-    // (delegates via package access if available; otherwise use formatted current time)
 
     private static boolean areObjectivesComplete(net.minecraft.world.entity.player.Player player) {
         if (objectives.isEmpty()) return false;

@@ -56,10 +56,10 @@ public class SpeedrunRoulette {
     public static String pendingVictoryTime = null;
     public static String pendingVictoryObjectiveName = null;
 
-    public static boolean pendingGiveUp = false;
-    public static boolean pendingReplay = false;
-    public static boolean pendingNewRun = false;
-    public static boolean pendingReset = false;
+    public static volatile boolean pendingGiveUp = false;
+    public static volatile boolean pendingReplay = false;
+    public static volatile boolean pendingNewRun = false;
+    public static volatile boolean pendingReset = false;
 
     // Auto-open wheel state
     public static boolean hasCheckedAutoOpen = false;
@@ -92,7 +92,7 @@ public class SpeedrunRoulette {
 
     public static String pendingLevelId = null;
 
-    private static void deleteWorldSave() {
+    public static void deleteWorldSave() {
         try {
             Minecraft mc = Minecraft.getInstance();
             String levelId = pendingLevelId;

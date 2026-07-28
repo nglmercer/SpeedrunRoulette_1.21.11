@@ -271,6 +271,50 @@ public class SpeedrunState {
             }
         }
 
+        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset) {
+            if (hasActiveObjectives()) {
+                try {
+                    SpeedrunRunInfo.save(false);
+                } catch (Throwable t) {
+                    SpeedrunRoulette.LOGGER.error("Failed to save run info during disconnect tick", t);
+                }
+            }
+
+            if (SpeedrunRoulette.pendingReset && mc.level != null) {
+                net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
+                if (server != null) {
+                    SpeedrunRoulette.pendingLevelId = SpeedrunRunInfo.getLevelId(server);
+                }
+            }
+
+            if (mc.level != null) {
+                mc.disconnect(new TitleScreen(), false);
+            } else {
+                if (SpeedrunRoulette.pendingReplay) {
+                    prepareForRetry();
+                    SpeedrunRoulette.pendingReplay = false;
+                    SpeedrunAutoNav.autoTriggerCreateWorld = false;
+                    finishTransition();
+                } else if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReset) {
+                    SpeedrunAutoNav.autoTriggerCreateWorld = true;
+                    SpeedrunRoulette.hasCheckedAutoOpen = false;
+                    if (!(mc.screen instanceof TitleScreen)) {
+                        mc.setScreen(new TitleScreen());
+                    } else {
+                        prepareForNewGame();
+                        SpeedrunAutoNav.resetProgress();
+                        if (SpeedrunRoulette.pendingReset) {
+                            SpeedrunRoulette.deleteWorldSave();
+                        }
+                        SpeedrunRoulette.pendingGiveUp = false;
+                        SpeedrunRoulette.pendingNewRun = false;
+                        SpeedrunRoulette.pendingReset = false;
+                    }
+                }
+            }
+            return;
+        }
+
         if (SpeedrunAutoNav.isDisconnectingOrSaving()) {
             if (SpeedrunAutoNav.autoTriggerCreateWorld && SpeedrunAutoNav.canAutoNavigateMenus()
                 && mc.screen instanceof CreateWorldScreen screen) {

@@ -47,24 +47,12 @@ public class SpeedrunCommands {
                 // /speedrun retry - Retry with same objectives
                 .then(Commands.literal("retry")
                     .executes(context -> {
-                        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || SpeedrunState.isTransitioning) {
+                        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset || SpeedrunState.isTransitioning) {
                             return 0;
                         }
                         SpeedrunRoulette.pendingReplay = true;
                         SpeedrunState.isTransitioning = true;
-                        try {
-                            SpeedrunState.saveRunInfo(false);
-                        } catch (Throwable ignored) {}
                         context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_retry"), false);
-                        var mc = net.minecraft.client.Minecraft.getInstance();
-                        if (mc.level != null) {
-                            // prepareForRetry happens on TitleScreen after disconnect completes
-                            mc.execute(() -> mc.disconnect(new net.minecraft.client.gui.screens.TitleScreen(), false));
-                        } else {
-                            SpeedrunState.prepareForRetry();
-                            SpeedrunRoulette.pendingReplay = false;
-                            SpeedrunState.finishTransition();
-                        }
                         return 1;
                     })
                 )
@@ -72,8 +60,12 @@ public class SpeedrunCommands {
                 // /speedrun giveup - Give up current run
                 .then(Commands.literal("giveup")
                     .executes(context -> {
+                        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset || SpeedrunState.isTransitioning) {
+                            return 0;
+                        }
+                        SpeedrunRoulette.pendingGiveUp = true;
+                        SpeedrunState.isTransitioning = true;
                         context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_give_up"), false);
-                        SpeedrunState.beginGiveUpAndDisconnect();
                         return 1;
                     })
                 )
@@ -81,8 +73,12 @@ public class SpeedrunCommands {
                 // /speedrun reset - Reset world and create new one
                 .then(Commands.literal("reset")
                     .executes(context -> {
+                        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset || SpeedrunState.isTransitioning) {
+                            return 0;
+                        }
+                        SpeedrunRoulette.pendingReset = true;
+                        SpeedrunState.isTransitioning = true;
                         context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_reset_world"), false);
-                        SpeedrunState.beginResetAndDisconnect();
                         return 1;
                     })
                 )

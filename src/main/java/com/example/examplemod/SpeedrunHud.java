@@ -13,11 +13,13 @@ public class SpeedrunHud {
         if (SpeedrunTimer.getHudState() == 2) return;
         if (!SpeedrunTimer.isRunning() && SpeedrunState.getObjectives().isEmpty()) return;
 
-        boolean showObjectives = (SpeedrunTimer.getHudState() == 0) && !SpeedrunState.getObjectives().isEmpty();
-        boolean showStats = (SpeedrunTimer.getHudState() == 0);
+        boolean hudFull = SpeedrunTimer.getHudState() == 0;
+        boolean showObjectives = hudFull && Config.HUD_SHOW_OBJECTIVES.get() && !SpeedrunState.getObjectives().isEmpty();
+        boolean showStats = hudFull && Config.HUD_SHOW_STATS.get();
 
         net.minecraft.client.gui.Font font = Minecraft.getInstance().font;
-        int width = g.guiWidth();
+        int screenWidth = g.guiWidth();
+        int screenHeight = g.guiHeight();
         int margin = 5;
 
         String timeStr = SpeedrunTimer.currentFormattedTime();
@@ -29,7 +31,7 @@ public class SpeedrunHud {
             Component.translatable("gui.examplemod.distance_label").getString() + " " + String.format("%.0fm", SpeedrunTimer.getTraveledMeters()) + " | " +
             Component.translatable("gui.examplemod.days_label").getString() + " " + SpeedrunTimer.getDaysPlayed();
 
-        renderObjectivesAndStats(g, font, width, margin, showObjectives, showStats,
+        renderHud(g, font, screenWidth, screenHeight, margin, showObjectives, showStats,
             timeStr, statsStr, SpeedrunState.getObjectives(), SpeedrunTimer.isRunning(), SpeedrunTimer.isPaused());
     }
 
@@ -44,39 +46,18 @@ public class SpeedrunHud {
                 Component.translatable("gui.examplemod.days_label").getString() + " 2";
 
             List<Objective> dummyObjectives = new ArrayList<>();
-
             try {
-                net.minecraft.resources.Identifier ironId = net.minecraft.resources.Identifier.tryParse("minecraft:iron_ingot");
-                net.minecraft.resources.Identifier dirtId = net.minecraft.resources.Identifier.tryParse("minecraft:dirt");
-                net.minecraft.resources.Identifier emeraldId = net.minecraft.resources.Identifier.tryParse("minecraft:emerald");
-
-                net.minecraft.world.item.Item iron = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(ironId).map(holder -> holder.value()).orElse(null);
-                net.minecraft.world.item.Item dirt = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(dirtId).map(holder -> holder.value()).orElse(null);
-                net.minecraft.world.item.Item emerald = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(emeraldId).map(holder -> holder.value()).orElse(null);
-
-                if (iron == net.minecraft.world.item.Items.AIR) iron = net.minecraft.world.item.Items.IRON_INGOT;
-                if (dirt == net.minecraft.world.item.Items.AIR) dirt = net.minecraft.world.item.Items.DIRT;
-                if (emerald == net.minecraft.world.item.Items.AIR) emerald = net.minecraft.world.item.Items.EMERALD;
-
-                if (iron != null && iron != net.minecraft.world.item.Items.AIR) {
-                    dummyObjectives.add(new Objective("preview_item", Component.translatable("gui.examplemod.preview_iron_ingot"), new net.minecraft.world.item.ItemStack(iron), Objective.Type.ITEM));
-                }
-                if (dirt != null && dirt != net.minecraft.world.item.Items.AIR) {
-                    dummyObjectives.add(new Objective("preview_block", Component.translatable("gui.examplemod.preview_dirt_block"), new net.minecraft.world.item.ItemStack(dirt), Objective.Type.BLOCK));
-                }
-                if (emerald != null && emerald != net.minecraft.world.item.Items.AIR) {
-                    dummyObjectives.add(new Objective("preview_gem", Component.translatable("gui.examplemod.preview_emerald"), new net.minecraft.world.item.ItemStack(emerald), Objective.Type.ITEM));
-                }
+                net.minecraft.world.item.Item iron = net.minecraft.world.item.Items.IRON_INGOT;
+                net.minecraft.world.item.Item dirt = net.minecraft.world.item.Items.DIRT;
+                net.minecraft.world.item.Item emerald = net.minecraft.world.item.Items.EMERALD;
+                dummyObjectives.add(new Objective("preview_item", Component.translatable("gui.examplemod.preview_iron_ingot"), new net.minecraft.world.item.ItemStack(iron), Objective.Type.ITEM));
+                dummyObjectives.add(new Objective("preview_block", Component.translatable("gui.examplemod.preview_dirt_block"), new net.minecraft.world.item.ItemStack(dirt), Objective.Type.BLOCK));
+                dummyObjectives.add(new Objective("preview_gem", Component.translatable("gui.examplemod.preview_emerald"), new net.minecraft.world.item.ItemStack(emerald), Objective.Type.ITEM));
             } catch (Throwable t) {
-                System.err.println("Preview Items Error: " + t.getMessage());
                 dummyObjectives.add(new Objective("preview_error", Component.translatable("gui.examplemod.preview_error"), net.minecraft.world.item.ItemStack.EMPTY, Objective.Type.ITEM));
             }
 
-            if (dummyObjectives.isEmpty()) {
-                dummyObjectives.add(new Objective("preview_fallback", Component.translatable("gui.examplemod.preview_test_item"), net.minecraft.world.item.ItemStack.EMPTY, Objective.Type.ITEM));
-            }
-
-            renderObjectivesAndStats(g, font, width, margin, true, true, timeStr, statsStr, dummyObjectives, true, false);
+            renderHud(g, font, width, 300, margin, true, true, timeStr, statsStr, dummyObjectives, true, false);
         } catch (Exception e) {
             System.err.println("Error rendering HUD preview: " + e.getMessage());
         }
@@ -94,10 +75,10 @@ public class SpeedrunHud {
         }
     }
 
-    static void renderObjectivesAndStats(GuiGraphics g, net.minecraft.client.gui.Font font, int width, int margin,
-                                          boolean showObjectivesList, boolean showStats,
-                                          String timeStr, String statsStr, List<Objective> renderObjectives,
-                                          boolean isTimerRunning, boolean isPaused) {
+    static void renderHud(GuiGraphics g, net.minecraft.client.gui.Font font, int screenWidth, int screenHeight, int margin,
+                          boolean showObjectivesList, boolean showStats,
+                          String timeStr, String statsStr, List<Objective> renderObjectives,
+                          boolean isTimerRunning, boolean isPaused) {
 
         float baseTimerScale = Config.HUD_TIMER_SCALE.get().floatValue();
         float itemScale = Config.HUD_ITEM_SCALE.get().floatValue();
@@ -105,8 +86,18 @@ public class SpeedrunHud {
 
         int textColor = parseColor(Config.HUD_TEXT_COLOR.get(), 0xFFFFFFFF);
         int customTimerColor = parseColor(Config.HUD_TIMER_COLOR.get(), -1);
+        int statsColor = parseColor(Config.HUD_STATS_COLOR.get(), 0xFFFFDDDD);
+        int completedColor = parseColor(Config.HUD_COMPLETED_COLOR.get(), 0xFF55FF55);
 
-        // --- Minimal Mode (Timer Only) ---
+        boolean showBg = Config.HUD_SHOW_BACKGROUND.get();
+        boolean showBorder = Config.HUD_SHOW_BORDER.get();
+        int bgAlpha = (int)(Config.HUD_BG_OPACITY.get() * 255) & 0xFF;
+        int bgColor = (bgAlpha << 24);
+
+        String position = Config.HUD_POSITION.get();
+        int offsetX = Config.HUD_OFFSET_X.get();
+        int offsetY = Config.HUD_OFFSET_Y.get();
+
         if (!showObjectivesList && !showStats) {
             float scale = baseTimerScale * 1.3f;
             int textWidth = font.width(timeStr);
@@ -115,11 +106,12 @@ public class SpeedrunHud {
             int boxWidth = (int)(textWidth * scale) + margin * 2 + 10;
             int boxHeight = (int)(textHeight * scale) + margin * 2 + 6;
 
-            int boxX = width - boxWidth - margin;
-            int boxY = margin;
+            int[] pos = computePosition(position, screenWidth, screenHeight, boxWidth, boxHeight, margin, offsetX, offsetY);
+            int boxX = pos[0];
+            int boxY = pos[1];
 
-            g.fill(boxX, boxY, boxX + boxWidth, boxY + boxHeight, 0xE0000000);
-            g.renderOutline(boxX - 1, boxY - 1, boxWidth + 2, boxHeight + 2, 0xFFFFFFFF);
+            if (showBg) g.fill(boxX, boxY, boxX + boxWidth, boxY + boxHeight, bgColor);
+            if (showBorder) g.renderOutline(boxX - 1, boxY - 1, boxWidth + 2, boxHeight + 2, 0xFFFFFFFF);
 
             int timerColor = (customTimerColor != -1) ? customTimerColor :
                              (isPaused ? 0xFFFFFF55 : (isTimerRunning ? 0xFF55FF55 : 0xFFFFFFFF));
@@ -136,7 +128,6 @@ public class SpeedrunHud {
             return;
         }
 
-        // --- Standard Mode ---
         int maxTextWidth = 140;
         int itemSize = (int)(16 * itemScale);
         int lineSpacing = (int)(itemSize * 1.2);
@@ -154,7 +145,8 @@ public class SpeedrunHud {
         }
 
         if (showStats) {
-            if ((int)(font.width(statsStr) * textScale) > maxTextWidth) maxTextWidth = (int)(font.width(statsStr) * textScale);
+            int sw = (int)(font.width(statsStr) * textScale);
+            if (sw > maxTextWidth) maxTextWidth = sw;
         }
 
         int boxWidth = maxTextWidth + margin * 2;
@@ -179,11 +171,12 @@ public class SpeedrunHud {
             boxHeight += (int)(12 * textScale);
         }
 
-        int boxX = width - boxWidth - margin;
-        int boxY = margin;
+        int[] pos = computePosition(position, screenWidth, screenHeight, boxWidth, boxHeight, margin, offsetX, offsetY);
+        int boxX = pos[0];
+        int boxY = pos[1];
 
-        g.fill(boxX, boxY, boxX + boxWidth, boxY + boxHeight, 0xE0000000);
-        g.renderOutline(boxX - 1, boxY - 1, boxWidth + 2, boxHeight + 2, 0xFFFFFFFF);
+        if (showBg) g.fill(boxX, boxY, boxX + boxWidth, boxY + boxHeight, bgColor);
+        if (showBorder) g.renderOutline(boxX - 1, boxY - 1, boxWidth + 2, boxHeight + 2, 0xFFFFFFFF);
 
         int currentY = boxY + margin;
         int textX = boxX + margin;
@@ -191,14 +184,13 @@ public class SpeedrunHud {
         int timerColor = (customTimerColor != -1) ? customTimerColor :
                          (isPaused ? 0xFFFFFF55 : (isTimerRunning ? 0xFF55FF55 : 0xFFFFFFFF));
 
-        float normalScale = baseTimerScale;
         float tCenterX = boxX + boxWidth / 2.0f;
         float tCenterY = currentY + (timerHeight / 2.0f) - 2;
 
         g.pose().translate(tCenterX, tCenterY);
-        g.pose().scale(normalScale, normalScale);
+        g.pose().scale(baseTimerScale, baseTimerScale);
         g.drawCenteredString(font, timeStr, 0, -4, timerColor);
-        g.pose().scale(1/normalScale, 1/normalScale);
+        g.pose().scale(1/baseTimerScale, 1/baseTimerScale);
         g.pose().translate(-tCenterX, -tCenterY);
 
         currentY += timerHeight;
@@ -208,7 +200,6 @@ public class SpeedrunHud {
             currentY += 4;
         }
 
-        // Objectives
         if (showObjectivesList) {
             g.pose().translate(textX, currentY);
             g.pose().scale(textScale, textScale);
@@ -220,7 +211,7 @@ public class SpeedrunHud {
             for (Objective obj : renderObjectives) {
                 Player player = Minecraft.getInstance().player;
                 boolean completed = (player != null) && obj.isCompleted(player);
-                int color = completed ? 0xFF55FF55 : textColor;
+                int color = completed ? completedColor : textColor;
                 Component name = obj.getDisplayName();
 
                 if (compactMode) {
@@ -262,16 +253,27 @@ public class SpeedrunHud {
             }
         }
 
-        // Stats
         if (showStats) {
             float sCenterX = boxX + boxWidth / 2.0f;
             float sCenterY = currentY + 4;
 
             g.pose().translate(sCenterX, sCenterY);
             g.pose().scale(textScale, textScale);
-            g.drawCenteredString(font, statsStr, 0, 0, 0xFFFFDDDD);
+            g.drawCenteredString(font, statsStr, 0, 0, statsColor);
             g.pose().scale(1/textScale, 1/textScale);
             g.pose().translate(-sCenterX, -sCenterY);
         }
+    }
+
+    private static int[] computePosition(String position, int screenWidth, int screenHeight,
+                                         int boxWidth, int boxHeight, int margin, int offsetX, int offsetY) {
+        int x, y;
+        switch (position) {
+            case "top_left" -> { x = margin; y = margin; }
+            case "bottom_right" -> { x = screenWidth - boxWidth - margin; y = screenHeight - boxHeight - margin; }
+            case "bottom_left" -> { x = margin; y = screenHeight - boxHeight - margin; }
+            default -> { x = screenWidth - boxWidth - margin; y = margin; }
+        }
+        return new int[]{ x + offsetX, y + offsetY };
     }
 }

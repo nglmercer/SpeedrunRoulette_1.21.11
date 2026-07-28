@@ -51,6 +51,16 @@ public class Config {
     public static final DoubleValue HUD_TEXT_SCALE;
     public static final StringValue HUD_TEXT_COLOR;
     public static final StringValue HUD_TIMER_COLOR;
+    public static final StringValue HUD_POSITION;
+    public static final DoubleValue HUD_BG_OPACITY;
+    public static final BooleanValue HUD_SHOW_BACKGROUND;
+    public static final BooleanValue HUD_SHOW_BORDER;
+    public static final BooleanValue HUD_SHOW_STATS;
+    public static final BooleanValue HUD_SHOW_OBJECTIVES;
+    public static final StringValue HUD_STATS_COLOR;
+    public static final StringValue HUD_COMPLETED_COLOR;
+    public static final IntValue HUD_OFFSET_X;
+    public static final IntValue HUD_OFFSET_Y;
 
     static {
         LOG_DIRT_BLOCK = new BooleanValue("logDirtBlock", true);
@@ -75,6 +85,16 @@ public class Config {
         HUD_TEXT_SCALE = new DoubleValue("hudTextScale", 1.0);
         HUD_TEXT_COLOR = new StringValue("hudTextColor", "#FFFFFFFF");
         HUD_TIMER_COLOR = new StringValue("hudTimerColor", "");
+        HUD_POSITION = new StringValue("hudPosition", "top_right");
+        HUD_BG_OPACITY = new DoubleValue("hudBgOpacity", 0.88);
+        HUD_SHOW_BACKGROUND = new BooleanValue("hudShowBackground", true);
+        HUD_SHOW_BORDER = new BooleanValue("hudShowBorder", true);
+        HUD_SHOW_STATS = new BooleanValue("hudShowStats", true);
+        HUD_SHOW_OBJECTIVES = new BooleanValue("hudShowObjectives", true);
+        HUD_STATS_COLOR = new StringValue("hudStatsColor", "#FFFFDDDD");
+        HUD_COMPLETED_COLOR = new StringValue("hudCompletedColor", "#FF55FF55");
+        HUD_OFFSET_X = new IntValue("hudOffsetX", 0);
+        HUD_OFFSET_Y = new IntValue("hudOffsetY", 0);
     }
 
     public static final Spec SPEC = new Spec();

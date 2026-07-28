@@ -12,6 +12,7 @@ public class Config {
     public static final ModConfigSpec.ConfigValue<List<? extends String>> ITEM_STRINGS;
     
     public static final ModConfigSpec.BooleanValue AUTO_OPEN_WHEEL;
+    public static final ModConfigSpec.BooleanValue AUTO_START;
     public static final ModConfigSpec.IntValue OBJECTIVE_COUNT;
     
     public static final ModConfigSpec.BooleanValue ENABLE_ITEMS;
@@ -46,7 +47,10 @@ public class Config {
         
         AUTO_OPEN_WHEEL = BUILDER.comment("Automatically open wheel on new world")
                 .define("autoOpenWheel", true);
-        
+
+        AUTO_START = BUILDER.comment("Automatically start timer when objectives are set")
+                .define("autoStart", true);
+
         OBJECTIVE_COUNT = BUILDER.comment("Number of objectives (1-10)")
                 .defineInRange("objectiveCount", 1, 1, 10);
                 

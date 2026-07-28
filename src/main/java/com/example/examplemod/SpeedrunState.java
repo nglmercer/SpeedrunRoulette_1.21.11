@@ -105,6 +105,9 @@ public class SpeedrunState {
         objectives = objs;
         objectivesFresh = true;
         objectivesCompleted = false;
+        if (Config.AUTO_START.get() && !objs.isEmpty()) {
+            startTimer();
+        }
         if (save) {
             saveObjectivesToWorld();
         }
@@ -249,12 +252,12 @@ public class SpeedrunState {
         List<Objective> objs = getObjectives();
         if (!objs.isEmpty()) {
             if (objs.size() > 1) {
-                objectiveName = "Liste de " + objs.size() + " items";
+                objectiveName = Component.translatable("gui.examplemod.list_of_items", objs.size()).getString();
             } else {
                 objectiveName = objs.get(0).getDisplayName().getString();
             }
         } else {
-            objectiveName = "Speedrun";
+            objectiveName = Component.translatable("gui.examplemod.default_speedrun_name").getString();
         }
 
         if (server != null) {
@@ -360,23 +363,25 @@ public class SpeedrunState {
                 long timestamp = tag.getLong("timestamp").orElse(0L);
                 String date = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(new java.util.Date(timestamp));
                 
-                String title = isVictory ? "Victoire !" : "Echec";
+                Component titleComp = isVictory
+                    ? Component.translatable("gui.examplemod.victory_indicator")
+                    : Component.translatable("gui.examplemod.defeat_indicator");
                 int color = isVictory ? 0xFF55FF55 : 0xFFFF5555;
-                
-                Component msg = Component.literal(title).withStyle(style -> style.withColor(color).withBold(true))
+
+                Component msg = titleComp.withStyle(style -> style.withColor(color).withBold(true))
                     .append("\n\n")
-                    .append(Component.literal("Objectif: " + objName).withStyle(net.minecraft.ChatFormatting.WHITE))
+                    .append(Component.translatable("gui.examplemod.objective_label").append(" " + objName).withStyle(net.minecraft.ChatFormatting.WHITE))
                     .append("\n")
-                    .append(Component.literal("Temps: " + time).withStyle(net.minecraft.ChatFormatting.YELLOW))
+                    .append(Component.translatable("gui.examplemod.time_label").append(" " + time).withStyle(net.minecraft.ChatFormatting.YELLOW))
                     .append("\n")
-                    .append(Component.literal("Date: " + date).withStyle(net.minecraft.ChatFormatting.GRAY));
-                
+                    .append(Component.translatable("gui.examplemod.date_label").append(" " + date).withStyle(net.minecraft.ChatFormatting.GRAY));
+
                 Minecraft.getInstance().setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(
                     (yes) -> Minecraft.getInstance().setScreen(parent),
-                    Component.literal("Infos de la Run"),
+                    Component.translatable("gui.examplemod.run_info_title"),
                     msg,
-                    Component.literal("Fermer"),
-                    Component.literal("") 
+                    Component.translatable("gui.examplemod.close_button"),
+                    Component.literal("")
                 ));
                 
             } catch (Exception e) {

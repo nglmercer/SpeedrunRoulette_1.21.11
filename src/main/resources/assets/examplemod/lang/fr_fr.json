@@ -35,6 +35,7 @@
   
   "gui.examplemod.config.title": "Configuration Speedrun",
   "gui.examplemod.config.auto_open": "Ouvrir Roue Auto : %s",
+  "gui.examplemod.config.auto_start": "Démarrage Auto Timer : %s",
   "gui.examplemod.config.objective_count": "Nombre d'Objectifs : %s",
   "gui.examplemod.config.pool_config": "Configurer Pool d'Objectifs...",
   "gui.examplemod.config.hud_config": "Configurer HUD...",
@@ -101,5 +102,29 @@
   "gui.examplemod.split.nether_fossil": "Fossile Nether",
   "gui.examplemod.split.trial_chamber": "Chambre des épreuves",
   
-  "gui.examplemod.level_rename.failure": " Echec"
+  "gui.examplemod.level_rename.failure": " Echec",
+
+  "gui.examplemod.victory_indicator": "Victoire !",
+  "gui.examplemod.defeat_indicator": "Echec",
+  "gui.examplemod.time_label": "Temps :",
+  "gui.examplemod.objective_label": "Objectif :",
+  "gui.examplemod.date_label": "Date :",
+  "gui.examplemod.run_info_title": "Infos de la Run",
+  "gui.examplemod.close_button": "Fermer",
+  "gui.examplemod.no_run_info": "Aucune information enregistrée pour ce monde.",
+  "gui.examplemod.paused_indicator": " (PAUSE)",
+  "gui.examplemod.deaths_label": "Morts :",
+  "gui.examplemod.distance_label": "Distance :",
+  "gui.examplemod.days_label": "Jours :",
+  "gui.examplemod.objectives_label": "Objectifs :",
+  "gui.examplemod.completed_checkbox": "[v]",
+  "gui.examplemod.uncompleted_checkbox": "[ ]",
+  "gui.examplemod.speedrun_config_button": "Config Speedrun",
+  "gui.examplemod.obtain_item_tooltip": "Obtenir cet item",
+  "gui.examplemod.preview_iron_ingot": "Lingot de Fer",
+  "gui.examplemod.preview_dirt_block": "Bloc de Terre",
+  "gui.examplemod.preview_emerald": "Emeraude",
+  "gui.examplemod.preview_error": "Erreur de chargement",
+  "gui.examplemod.preview_test_item": "Item de Test",
+  "gui.examplemod.list_of_items": "Liste de %s items"
 }

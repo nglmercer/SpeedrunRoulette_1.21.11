@@ -35,6 +35,7 @@
   
   "gui.examplemod.config.title": "Speedrun Konfiguration",
   "gui.examplemod.config.auto_open": "Rad autom. öffnen: %s",
+  "gui.examplemod.config.auto_start": "Timer autom. starten: %s",
   "gui.examplemod.config.objective_count": "Anzahl Ziele: %s",
   "gui.examplemod.config.pool_config": "Ziel-Pool konfigurieren...",
   "gui.examplemod.config.hud_config": "HUD konfigurieren...",
@@ -101,5 +102,29 @@
   "gui.examplemod.split.nether_fossil": "Nether-Fossil",
   "gui.examplemod.split.trial_chamber": "Prüfungskammer",
   
-  "gui.examplemod.level_rename.failure": " Fehlgeschlagen"
+  "gui.examplemod.level_rename.failure": " Fehlgeschlagen",
+
+  "gui.examplemod.victory_indicator": "Sieg!",
+  "gui.examplemod.defeat_indicator": "Fehlgeschlagen",
+  "gui.examplemod.time_label": "Zeit:",
+  "gui.examplemod.objective_label": "Ziel:",
+  "gui.examplemod.date_label": "Datum:",
+  "gui.examplemod.run_info_title": "Run-Info",
+  "gui.examplemod.close_button": "Schließen",
+  "gui.examplemod.no_run_info": "Keine Informationen für diese Welt gespeichert.",
+  "gui.examplemod.paused_indicator": " (PAUSE)",
+  "gui.examplemod.deaths_label": "Tode:",
+  "gui.examplemod.distance_label": "Distanz:",
+  "gui.examplemod.days_label": "Tage:",
+  "gui.examplemod.objectives_label": "Ziele:",
+  "gui.examplemod.completed_checkbox": "[v]",
+  "gui.examplemod.uncompleted_checkbox": "[ ]",
+  "gui.examplemod.speedrun_config_button": "Speedrun Config",
+  "gui.examplemod.obtain_item_tooltip": "Diesen Gegenstand besorgen",
+  "gui.examplemod.preview_iron_ingot": "Eisenbarren",
+  "gui.examplemod.preview_dirt_block": "Erdblock",
+  "gui.examplemod.preview_emerald": "Smaragd",
+  "gui.examplemod.preview_error": "Fehler beim Laden",
+  "gui.examplemod.preview_test_item": "Test-Gegenstand",
+  "gui.examplemod.list_of_items": "Liste von %s Gegenständen"
 }

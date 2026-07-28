@@ -35,6 +35,7 @@
   
   "gui.examplemod.config.title": "Configurazione Speedrun",
   "gui.examplemod.config.auto_open": "Apri Ruota Auto: %s",
+  "gui.examplemod.config.auto_start": "Avvio Auto Timer: %s",
   "gui.examplemod.config.objective_count": "Numero Obiettivi: %s",
   "gui.examplemod.config.pool_config": "Configura Pool Obiettivi...",
   "gui.examplemod.config.hud_config": "Configura HUD...",
@@ -101,5 +102,29 @@
   "gui.examplemod.split.nether_fossil": "Fossile del Nether",
   "gui.examplemod.split.trial_chamber": "Camera delle Prove",
   
-  "gui.examplemod.level_rename.failure": " Fallito"
+  "gui.examplemod.level_rename.failure": " Fallito",
+
+  "gui.examplemod.victory_indicator": "Vittoria!",
+  "gui.examplemod.defeat_indicator": "Fallito",
+  "gui.examplemod.time_label": "Tempo:",
+  "gui.examplemod.objective_label": "Obiettivo:",
+  "gui.examplemod.date_label": "Data:",
+  "gui.examplemod.run_info_title": "Info Run",
+  "gui.examplemod.close_button": "Chiudi",
+  "gui.examplemod.no_run_info": "Nessuna informazione registrata per questo mondo.",
+  "gui.examplemod.paused_indicator": " (PAUSA)",
+  "gui.examplemod.deaths_label": "Morti:",
+  "gui.examplemod.distance_label": "Distanza:",
+  "gui.examplemod.days_label": "Giorni:",
+  "gui.examplemod.objectives_label": "Obiettivi:",
+  "gui.examplemod.completed_checkbox": "[v]",
+  "gui.examplemod.uncompleted_checkbox": "[ ]",
+  "gui.examplemod.speedrun_config_button": "Config Speedrun",
+  "gui.examplemod.obtain_item_tooltip": "Ottieni questo oggetto",
+  "gui.examplemod.preview_iron_ingot": "Lingotto di Ferro",
+  "gui.examplemod.preview_dirt_block": "Blocco di Terra",
+  "gui.examplemod.preview_emerald": "Smeraldo",
+  "gui.examplemod.preview_error": "Errore di caricamento",
+  "gui.examplemod.preview_test_item": "Oggetto di Prova",
+  "gui.examplemod.list_of_items": "Lista di %s oggetti"
 }

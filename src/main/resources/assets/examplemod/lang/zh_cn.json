@@ -35,6 +35,7 @@
   
   "gui.examplemod.config.title": "速通配置",
   "gui.examplemod.config.auto_open": "自动打开轮盘：%s",
+  "gui.examplemod.config.auto_start": "自动启动计时器：%s",
   "gui.examplemod.config.objective_count": "目标数量：%s",
   "gui.examplemod.config.pool_config": "配置目标池...",
   "gui.examplemod.config.hud_config": "配置 HUD...",
@@ -101,5 +102,29 @@
   "gui.examplemod.split.nether_fossil": "下界化石",
   "gui.examplemod.split.trial_chamber": "试炼密室",
   
-  "gui.examplemod.level_rename.failure": " 失败"
+  "gui.examplemod.level_rename.failure": " 失败",
+
+  "gui.examplemod.victory_indicator": "胜利！",
+  "gui.examplemod.defeat_indicator": "失败",
+  "gui.examplemod.time_label": "时间：",
+  "gui.examplemod.objective_label": "目标：",
+  "gui.examplemod.date_label": "日期：",
+  "gui.examplemod.run_info_title": "运行信息",
+  "gui.examplemod.close_button": "关闭",
+  "gui.examplemod.no_run_info": "此世界没有记录信息。",
+  "gui.examplemod.paused_indicator": "（暂停）",
+  "gui.examplemod.deaths_label": "死亡：",
+  "gui.examplemod.distance_label": "距离：",
+  "gui.examplemod.days_label": "天数：",
+  "gui.examplemod.objectives_label": "目标：",
+  "gui.examplemod.completed_checkbox": "[v]",
+  "gui.examplemod.uncompleted_checkbox": "[ ]",
+  "gui.examplemod.speedrun_config_button": "速通配置",
+  "gui.examplemod.obtain_item_tooltip": "获取此物品",
+  "gui.examplemod.preview_iron_ingot": "铁锭",
+  "gui.examplemod.preview_dirt_block": "泥土方块",
+  "gui.examplemod.preview_emerald": "绿宝石",
+  "gui.examplemod.preview_error": "加载错误",
+  "gui.examplemod.preview_test_item": "测试物品",
+  "gui.examplemod.list_of_items": "%s 个物品列表"
 }

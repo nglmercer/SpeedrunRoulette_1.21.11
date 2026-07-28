@@ -142,7 +142,7 @@ public class SpeedrunState {
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.level != null) {
-            mc.disconnect(new TitleScreen(), false);
+            mc.execute(() -> Minecraft.getInstance().disconnect(new TitleScreen(), false));
         } else {
             SpeedrunAutoNav.autoTriggerCreateWorld = true;
             SpeedrunRoulette.hasCheckedAutoOpen = false;
@@ -174,7 +174,7 @@ public class SpeedrunState {
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.level != null) {
-            mc.disconnect(new TitleScreen(), false);
+            mc.execute(() -> Minecraft.getInstance().disconnect(new TitleScreen(), false));
         } else {
             SpeedrunAutoNav.autoTriggerCreateWorld = true;
             SpeedrunRoulette.hasCheckedAutoOpen = false;
@@ -210,7 +210,7 @@ public class SpeedrunState {
             if (server != null) {
                 SpeedrunRoulette.pendingLevelId = SpeedrunRunInfo.getLevelId(server);
             }
-            mc.disconnect(new TitleScreen(), false);
+            mc.execute(() -> Minecraft.getInstance().disconnect(new TitleScreen(), false));
         } else {
             SpeedrunAutoNav.autoTriggerCreateWorld = true;
             SpeedrunRoulette.hasCheckedAutoOpen = false;

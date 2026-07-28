@@ -59,7 +59,7 @@ public class SpeedrunCommands {
                         var mc = net.minecraft.client.Minecraft.getInstance();
                         if (mc.level != null) {
                             // prepareForRetry happens on TitleScreen after disconnect completes
-                            mc.disconnect(new net.minecraft.client.gui.screens.TitleScreen(), false);
+                            mc.execute(() -> mc.disconnect(new net.minecraft.client.gui.screens.TitleScreen(), false));
                         } else {
                             SpeedrunState.prepareForRetry();
                             SpeedrunRoulette.pendingReplay = false;

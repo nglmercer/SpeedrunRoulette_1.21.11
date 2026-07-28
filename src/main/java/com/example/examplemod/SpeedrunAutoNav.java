@@ -33,12 +33,17 @@ public class SpeedrunAutoNav {
         return true;
     }
 
+    /**
+     * Returns true while Minecraft is in a screen transition state (saving world,
+     * loading world, etc.). Does NOT check isTransitioning to avoid deadlocks —
+     * transitions are now managed solely by pending flags and screen type.
+     */
     public static boolean isDisconnectingOrSaving() {
         Minecraft mc = Minecraft.getInstance();
         return SpeedrunRoulette.pendingGiveUp
             || SpeedrunRoulette.pendingNewRun
             || SpeedrunRoulette.pendingReplay
-            || SpeedrunState.isTransitioning
+            || SpeedrunRoulette.pendingReset
             || mc.screen instanceof net.minecraft.client.gui.screens.GenericMessageScreen
             || mc.screen instanceof net.minecraft.client.gui.screens.LevelLoadingScreen
             || mc.screen instanceof net.minecraft.client.gui.screens.ProgressScreen;
@@ -49,6 +54,12 @@ public class SpeedrunAutoNav {
             event.addListener(Button.builder(Component.translatable("gui.examplemod.speedrun_config_button"), (btn) -> {
                 Minecraft.getInstance().setScreen(new SpeedrunConfigScreen(event.getScreen()));
             }).bounds(10, 10, 100, 20).build());
+
+            // Handle any pending transition that was triggered before we reached TitleScreen.
+            if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun
+                    || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset) {
+                SpeedrunState.handleTitleScreenArrival(Minecraft.getInstance());
+            }
         }
 
         if (event.getScreen() instanceof SelectWorldScreen) {

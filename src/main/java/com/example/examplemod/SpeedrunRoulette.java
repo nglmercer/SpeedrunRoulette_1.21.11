@@ -206,6 +206,8 @@ public class SpeedrunRoulette {
 
         @SubscribeEvent
         public void onScreenInit(ScreenEvent.Init.Post event) {
+            // Transition handling for TitleScreen is delegated to SpeedrunAutoNav
+            // via SpeedrunState.onScreenInit below.
             SpeedrunState.onScreenInit(event);
         }
 

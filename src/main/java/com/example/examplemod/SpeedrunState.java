@@ -18,7 +18,12 @@ public class SpeedrunState {
     private static int autoOpenDelayTicks = 0;
 
     public static boolean keepObjectivesForNextRun = false;
-    public static boolean isTransitioning = false;
+
+    /**
+     * True while a disconnect is pending or in-progress on the render thread.
+     * Set ONLY from the render thread. Cleared when TitleScreen arrives.
+     */
+    public static volatile boolean isTransitioning = false;
 
     // --- Objectives Management ---
 
@@ -101,17 +106,15 @@ public class SpeedrunState {
 
     public static void prepareForRetry() {
         keepObjectivesForNextRun = true;
-        isTransitioning = true;
         SpeedrunTimer.reset();
         SpeedrunSplits.reset();
         objectivesFresh = true;
         objectivesLoaded = true;
-        saveObjectivesToWorld();
+        // Do NOT call saveObjectivesToWorld() here — server is already gone after disconnect.
     }
 
     public static void prepareForNewGame() {
         keepObjectivesForNextRun = false;
-        isTransitioning = true;
         clearObjectives();
         SpeedrunTimer.reset();
         SpeedrunSplits.reset();
@@ -124,102 +127,160 @@ public class SpeedrunState {
         SpeedrunAutoNav.resetProgress();
     }
 
-    public static void beginGiveUpAndDisconnect() {
-        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || isTransitioning) {
-            return;
+    /**
+     * Called ONLY from the render/client thread (SpeedrunRoulette.onClientTick).
+     * Sets pending flag + schedules the actual disconnect on this same thread.
+     */
+    public static void beginRetryAndDisconnect() {
+        if (anyPendingOrTransitioning()) return;
+
+        SpeedrunRoulette.pendingReplay = true;
+        isTransitioning = true;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level != null) {
+            // Save run info now (we're on render thread, server is still up).
+            trySaveRunInfo(false);
+            // Capture level ID for world deletion if needed later.
+            captureLevelId(mc);
+            mc.disconnect(new TitleScreen(), false);
+        } else {
+            // Already disconnected: handle transition immediately.
+            handleTitleScreenArrival(mc);
         }
+    }
+
+    public static void beginGiveUpAndDisconnect() {
+        if (anyPendingOrTransitioning()) return;
 
         SpeedrunRoulette.pendingGiveUp = true;
         isTransitioning = true;
 
-        try {
-            if (hasActiveObjectives()) {
-                SpeedrunRunInfo.save(false);
-            }
-        } catch (Throwable t) {
-            SpeedrunRoulette.LOGGER.error("Failed to save run info on give up", t);
-        }
-
         Minecraft mc = Minecraft.getInstance();
         if (mc.level != null) {
-            mc.execute(() -> Minecraft.getInstance().disconnect(new TitleScreen(), false));
+            trySaveRunInfo(false);
+            captureLevelId(mc);
+            mc.disconnect(new TitleScreen(), false);
         } else {
-            SpeedrunAutoNav.autoTriggerCreateWorld = true;
-            SpeedrunRoulette.hasCheckedAutoOpen = false;
-            if (!(mc.screen instanceof TitleScreen)) {
-                mc.setScreen(new TitleScreen());
-            } else {
-                prepareForNewGame();
-                SpeedrunAutoNav.resetProgress();
-                SpeedrunRoulette.pendingGiveUp = false;
-            }
+            handleTitleScreenArrival(mc);
         }
     }
 
     public static void beginNewRunAndDisconnect() {
-        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset || isTransitioning) {
-            return;
-        }
+        if (anyPendingOrTransitioning()) return;
 
         SpeedrunRoulette.pendingNewRun = true;
         isTransitioning = true;
 
-        try {
-            if (hasActiveObjectives()) {
-                SpeedrunRunInfo.save(false);
-            }
-        } catch (Throwable t) {
-            SpeedrunRoulette.LOGGER.error("Failed to save run info on new run", t);
-        }
-
         Minecraft mc = Minecraft.getInstance();
         if (mc.level != null) {
-            mc.execute(() -> Minecraft.getInstance().disconnect(new TitleScreen(), false));
+            trySaveRunInfo(false);
+            captureLevelId(mc);
+            mc.disconnect(new TitleScreen(), false);
         } else {
-            SpeedrunAutoNav.autoTriggerCreateWorld = true;
-            SpeedrunRoulette.hasCheckedAutoOpen = false;
-            if (!(mc.screen instanceof TitleScreen)) {
-                mc.setScreen(new TitleScreen());
-            } else {
-                prepareForNewGame();
-                SpeedrunAutoNav.resetProgress();
-                SpeedrunRoulette.pendingNewRun = false;
-            }
+            handleTitleScreenArrival(mc);
         }
     }
 
     public static void beginResetAndDisconnect() {
-        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset || isTransitioning) {
-            return;
-        }
+        if (anyPendingOrTransitioning()) return;
 
         SpeedrunRoulette.pendingReset = true;
         isTransitioning = true;
 
-        try {
-            if (hasActiveObjectives()) {
-                SpeedrunRunInfo.save(false);
-            }
-        } catch (Throwable t) {
-            SpeedrunRoulette.LOGGER.error("Failed to save run info on reset", t);
-        }
-
         Minecraft mc = Minecraft.getInstance();
         if (mc.level != null) {
+            trySaveRunInfo(false);
+            captureLevelId(mc);
+            mc.disconnect(new TitleScreen(), false);
+        } else {
+            handleTitleScreenArrival(mc);
+        }
+    }
+
+    /**
+     * Called from onScreenInit when TitleScreen is detected, OR from the else-path
+     * above when there's no active world.
+     * Must run on the render thread.
+     */
+    static void handleTitleScreenArrival(Minecraft mc) {
+        boolean startingNew = SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun;
+        boolean startingRetry = SpeedrunRoulette.pendingReplay;
+        boolean startingReset = SpeedrunRoulette.pendingReset;
+
+        if (!startingNew && !startingRetry && !startingReset) {
+            // Nothing pending — just ensure transitioning is cleared.
+            isTransitioning = false;
+            return;
+        }
+
+        SpeedrunRoulette.LOGGER.info("TitleScreen arrival: pendingNew={}, pendingRetry={}, pendingReset={}",
+            startingNew, startingRetry, startingReset);
+
+        if (startingNew) {
+            SpeedrunRoulette.LOGGER.info("TitleScreen: Preparing for New Game");
+            prepareForNewGame();
+            SpeedrunAutoNav.autoTriggerCreateWorld = true;
+            SpeedrunAutoNav.resetProgress();
+        } else if (startingRetry) {
+            SpeedrunRoulette.LOGGER.info("TitleScreen: Preparing for Retry");
+            prepareForRetry();
+            SpeedrunAutoNav.autoTriggerCreateWorld = false;
+        } else {
+            SpeedrunRoulette.LOGGER.info("TitleScreen: Preparing for Reset (Delete World + New)");
+            prepareForNewGame();
+            SpeedrunAutoNav.autoTriggerCreateWorld = true;
+            SpeedrunAutoNav.resetProgress();
+            SpeedrunRoulette.deleteWorldSave();
+        }
+
+        // Clear all pending flags.
+        SpeedrunRoulette.pendingGiveUp = false;
+        SpeedrunRoulette.pendingNewRun = false;
+        SpeedrunRoulette.pendingReplay = false;
+        SpeedrunRoulette.pendingReset = false;
+        SpeedrunRoulette.pendingVictoryTime = null;
+        SpeedrunRoulette.pendingVictoryObjectiveName = null;
+        SpeedrunRoulette.hasCheckedAutoOpen = false;
+
+        // Finish transition: if autoTriggerCreateWorld is set, finishTransition is
+        // called later when the CreateWorldScreen auto-press completes.
+        if (!SpeedrunAutoNav.autoTriggerCreateWorld) {
+            finishTransition();
+        } else {
+            // isTransitioning stays true until CreateWorldScreen press; but
+            // reset the nav progress so AutoNav can proceed.
+            isTransitioning = false; // Let AutoNav proceed without deadlocking.
+            SpeedrunAutoNav.resetProgress();
+        }
+
+        // Ensure the title screen is shown if not already.
+        if (!(mc.screen instanceof TitleScreen)) {
+            mc.setScreen(new TitleScreen());
+        }
+    }
+
+    private static boolean anyPendingOrTransitioning() {
+        return SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun
+            || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset
+            || isTransitioning;
+    }
+
+    private static void trySaveRunInfo(boolean isVictory) {
+        try {
+            if (hasActiveObjectives()) {
+                SpeedrunRunInfo.save(isVictory);
+            }
+        } catch (Throwable t) {
+            SpeedrunRoulette.LOGGER.error("Failed to save run info during transition", t);
+        }
+    }
+
+    private static void captureLevelId(Minecraft mc) {
+        if (SpeedrunRoulette.pendingReset) {
             net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
             if (server != null) {
                 SpeedrunRoulette.pendingLevelId = SpeedrunRunInfo.getLevelId(server);
-            }
-            mc.execute(() -> Minecraft.getInstance().disconnect(new TitleScreen(), false));
-        } else {
-            SpeedrunAutoNav.autoTriggerCreateWorld = true;
-            SpeedrunRoulette.hasCheckedAutoOpen = false;
-            if (!(mc.screen instanceof TitleScreen)) {
-                mc.setScreen(new TitleScreen());
-            } else {
-                prepareForNewGame();
-                SpeedrunAutoNav.resetProgress();
-                SpeedrunRoulette.pendingReset = false;
             }
         }
     }
@@ -271,65 +332,9 @@ public class SpeedrunState {
             }
         }
 
-        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset) {
-            boolean startingNew = SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun;
-            boolean startingRetry = SpeedrunRoulette.pendingReplay;
-            boolean startingReset = SpeedrunRoulette.pendingReset;
-
-            if (hasActiveObjectives()) {
-                try {
-                    SpeedrunRunInfo.save(false);
-                } catch (Throwable t) {
-                    SpeedrunRoulette.LOGGER.error("Failed to save run info during disconnect tick", t);
-                }
-            }
-
-            if (startingReset && mc.level != null) {
-                net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
-                if (server != null) {
-                    SpeedrunRoulette.pendingLevelId = SpeedrunRunInfo.getLevelId(server);
-                }
-            }
-
-            // Clear pending flags immediately so this block executes ONLY ONCE per command
-            SpeedrunRoulette.pendingGiveUp = false;
-            SpeedrunRoulette.pendingNewRun = false;
-            SpeedrunRoulette.pendingReplay = false;
-            SpeedrunRoulette.pendingReset = false;
-
-            if (startingRetry) {
-                SpeedrunRoulette.LOGGER.info("ClientTick: Preparing for Retry (Keep Objectives)");
-                prepareForRetry();
-                SpeedrunAutoNav.autoTriggerCreateWorld = false;
-            } else if (startingNew || startingReset) {
-                SpeedrunRoulette.LOGGER.info("ClientTick: Preparing for New Run / Reset");
-                prepareForNewGame();
-                SpeedrunAutoNav.autoTriggerCreateWorld = true;
-                SpeedrunAutoNav.resetProgress();
-                if (startingReset) {
-                    SpeedrunRoulette.deleteWorldSave();
-                }
-            }
-
-            if (mc.level != null) {
-                mc.disconnect(new TitleScreen(), false);
-            } else {
-                if (!SpeedrunAutoNav.autoTriggerCreateWorld) {
-                    finishTransition();
-                } else if (!(mc.screen instanceof TitleScreen)) {
-                    mc.setScreen(new TitleScreen());
-                }
-            }
-            return;
-        }
-
-        if (SpeedrunAutoNav.isDisconnectingOrSaving()) {
-            if (SpeedrunAutoNav.autoTriggerCreateWorld && SpeedrunAutoNav.canAutoNavigateMenus()
-                && mc.screen instanceof CreateWorldScreen screen) {
-                SpeedrunAutoNav.tryAutoPressCreateWorld(screen);
-            }
-            return;
-        }
+        // Handle pending disconnection transitions.
+        // isDisconnectingOrSaving() no longer blocks this path — transitions are
+        // handled immediately on the render thread via beginXxxAndDisconnect().
 
         if (SpeedrunAutoNav.autoTriggerCreateWorld && SpeedrunAutoNav.canAutoNavigateMenus()
             && mc.screen instanceof CreateWorldScreen screen) {

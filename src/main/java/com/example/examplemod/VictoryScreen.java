@@ -19,30 +19,20 @@ public class VictoryScreen extends Screen {
 
         // Rejouer (Même Objectif)
         this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.play_again"), (btn) -> {
-            SpeedrunRoulette.pendingReplay = true;
-
-            // Save Run Info (Success)
             SpeedrunState.saveRunInfo(true);
-
-            this.minecraft.disconnect(new net.minecraft.client.gui.screens.TitleScreen(), false);
+            SpeedrunState.beginRetryAndDisconnect();
         }).bounds(this.width / 2 - buttonWidth / 2, startY, buttonWidth, buttonHeight).build());
 
         // Nouvelle Run (Nouveaux Objectifs)
         this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.new_run"), (btn) -> {
-            SpeedrunRoulette.pendingNewRun = true;
-
-            // Save Run Info (Success)
             SpeedrunState.saveRunInfo(true);
-
-            this.minecraft.disconnect(new net.minecraft.client.gui.screens.TitleScreen(), false);
+            SpeedrunState.beginNewRunAndDisconnect();
         }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing, buttonWidth, buttonHeight).build());
 
         // Menu Principal
         this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.main_menu"), (btn) -> {
-            // Save Run Info (Success)
             SpeedrunState.saveRunInfo(true);
-
-            this.minecraft.disconnect(new net.minecraft.client.gui.screens.TitleScreen(), false);
+            SpeedrunState.beginGiveUpAndDisconnect();
         }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * 2, buttonWidth, buttonHeight).build());
 
         // Rester en Jeu (Fermer Menu)

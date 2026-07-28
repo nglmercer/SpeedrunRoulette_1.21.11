@@ -1,7 +1,6 @@
 package com.example.examplemod;
 
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -9,6 +8,16 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
+/**
+ * Registers all /speedrun sub-commands.
+ *
+ * IMPORTANT: Command executors run on the Server thread (not the render thread).
+ * Any operation that touches Minecraft client state (disconnect, setScreen, etc.)
+ * MUST be posted to the render thread via mc.execute(() -> ...).
+ *
+ * The beginXxxAndDisconnect() methods themselves call mc.disconnect() directly, so
+ * they MUST be wrapped in mc.execute().
+ */
 @EventBusSubscriber(modid = SpeedrunRoulette.MODID)
 public class SpeedrunCommands {
 
@@ -22,7 +31,7 @@ public class SpeedrunCommands {
                 // /speedrun wheel - Open wheel to get new objectives
                 .then(Commands.literal("wheel")
                     .executes(context -> {
-                        SpeedrunState.openWheelNow();
+                        net.minecraft.client.Minecraft.getInstance().execute(SpeedrunState::openWheelNow);
                         return 1;
                     })
                 )
@@ -30,7 +39,7 @@ public class SpeedrunCommands {
                 // /speedrun reminder - Show current objectives reminder
                 .then(Commands.literal("reminder")
                     .executes(context -> {
-                        SpeedrunState.openWheelOrReminder();
+                        net.minecraft.client.Minecraft.getInstance().execute(SpeedrunState::openWheelOrReminder);
                         return 1;
                     })
                 )
@@ -39,7 +48,7 @@ public class SpeedrunCommands {
                 .then(Commands.literal("new")
                     .executes(context -> {
                         context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_new_run"), false);
-                        SpeedrunState.beginNewRunAndDisconnect();
+                        net.minecraft.client.Minecraft.getInstance().execute(SpeedrunState::beginNewRunAndDisconnect);
                         return 1;
                     })
                 )
@@ -47,12 +56,8 @@ public class SpeedrunCommands {
                 // /speedrun retry - Retry with same objectives
                 .then(Commands.literal("retry")
                     .executes(context -> {
-                        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset || SpeedrunState.isTransitioning) {
-                            return 0;
-                        }
-                        SpeedrunRoulette.pendingReplay = true;
-                        SpeedrunState.isTransitioning = true;
                         context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_retry"), false);
+                        net.minecraft.client.Minecraft.getInstance().execute(SpeedrunState::beginRetryAndDisconnect);
                         return 1;
                     })
                 )
@@ -60,12 +65,8 @@ public class SpeedrunCommands {
                 // /speedrun giveup - Give up current run
                 .then(Commands.literal("giveup")
                     .executes(context -> {
-                        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset || SpeedrunState.isTransitioning) {
-                            return 0;
-                        }
-                        SpeedrunRoulette.pendingGiveUp = true;
-                        SpeedrunState.isTransitioning = true;
                         context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_give_up"), false);
+                        net.minecraft.client.Minecraft.getInstance().execute(SpeedrunState::beginGiveUpAndDisconnect);
                         return 1;
                     })
                 )
@@ -73,12 +74,8 @@ public class SpeedrunCommands {
                 // /speedrun reset - Reset world and create new one
                 .then(Commands.literal("reset")
                     .executes(context -> {
-                        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset || SpeedrunState.isTransitioning) {
-                            return 0;
-                        }
-                        SpeedrunRoulette.pendingReset = true;
-                        SpeedrunState.isTransitioning = true;
                         context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_reset_world"), false);
+                        net.minecraft.client.Minecraft.getInstance().execute(SpeedrunState::beginResetAndDisconnect);
                         return 1;
                     })
                 )
@@ -86,7 +83,7 @@ public class SpeedrunCommands {
                 // /speedrun pause - Toggle pause timer
                 .then(Commands.literal("pause")
                     .executes(context -> {
-                        SpeedrunState.toggleManualPause();
+                        net.minecraft.client.Minecraft.getInstance().execute(SpeedrunState::toggleManualPause);
                         return 1;
                     })
                 )
@@ -94,7 +91,7 @@ public class SpeedrunCommands {
                 // /speedrun hud - Cycle HUD mode
                 .then(Commands.literal("hud")
                     .executes(context -> {
-                        SpeedrunState.toggleHud();
+                        net.minecraft.client.Minecraft.getInstance().execute(SpeedrunState::toggleHud);
                         return 1;
                     })
                 )
@@ -103,7 +100,7 @@ public class SpeedrunCommands {
                 .then(Commands.literal("config")
                     .executes(context -> {
                         var mc = net.minecraft.client.Minecraft.getInstance();
-                        mc.setScreen(new SpeedrunConfigScreen(mc.screen));
+                        mc.execute(() -> mc.setScreen(new SpeedrunConfigScreen(mc.screen)));
                         return 1;
                     })
                 )
@@ -115,9 +112,9 @@ public class SpeedrunCommands {
                         if (mc.player != null) {
                             if (SpeedrunState.hasActiveObjectives()) {
                                 String time = SpeedrunState.currentFormattedTime();
-                                boolean paused = SpeedrunState.isCompleted();
+                                boolean completed = SpeedrunState.isCompleted();
                                 mc.player.displayClientMessage(
-                                    Component.translatable("gui.examplemod.cmd_status", time, paused ? "Completed" : "Running"),
+                                    Component.translatable("gui.examplemod.cmd_status", time, completed ? "Completed" : "Running"),
                                     true
                                 );
                             } else {

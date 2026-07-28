@@ -14,6 +14,8 @@ public class Config {
     public static final ModConfigSpec.BooleanValue AUTO_OPEN_WHEEL;
     public static final ModConfigSpec.BooleanValue AUTO_START;
     public static final ModConfigSpec.IntValue OBJECTIVE_COUNT;
+    /** Default multiplayer mode: COOPERATIVE or CHALLENGE. Applied when a run starts. */
+    public static final ModConfigSpec.ConfigValue<String> GAME_MODE;
     
     public static final ModConfigSpec.BooleanValue ENABLE_ITEMS;
     public static final ModConfigSpec.BooleanValue ENABLE_BLOCKS;
@@ -54,6 +56,10 @@ public class Config {
 
         OBJECTIVE_COUNT = BUILDER.comment("Number of objectives (1-10)")
                 .defineInRange("objectiveCount", 1, 1, 10);
+
+        GAME_MODE = BUILDER.comment(
+                "Default multiplayer game mode: COOPERATIVE (shared win, default) or CHALLENGE (first to finish wins, others lose)")
+                .define("gameMode", "COOPERATIVE");
                 
         ENABLE_ITEMS = BUILDER.comment("Include Items in the objective pool")
                 .define("enableItems", true);
@@ -96,6 +102,14 @@ public class Config {
     }
 
     public static final ModConfigSpec SPEC = BUILDER.build();
+
+    public static SpeedrunGameMode getGameMode() {
+        return SpeedrunGameMode.fromString(GAME_MODE.get());
+    }
+
+    public static void setGameMode(SpeedrunGameMode mode) {
+        GAME_MODE.set(mode.name());
+    }
 
     private static boolean validateItemName(final Object obj) {
         return obj instanceof String itemName && itemName.length() > 0;

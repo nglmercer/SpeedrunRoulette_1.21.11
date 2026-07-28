@@ -73,17 +73,8 @@ public class SpeedrunCommands {
                 // /speedrun giveup - Give up current run
                 .then(Commands.literal("giveup")
                     .executes(context -> {
-                        SpeedrunRoulette.pendingGiveUp = true;
-                        SpeedrunState.saveRunInfo(false);
-                        SpeedrunState.prepareForNewGame();
-                        SpeedrunState.autoTriggerCreateWorld = true;
-                        SpeedrunRoulette.hasCheckedAutoOpen = false;
-                        SpeedrunState.finishTransition();
                         context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_give_up"), false);
-                        var mc = net.minecraft.client.Minecraft.getInstance();
-                        if (mc.level != null) {
-                            mc.disconnect(new net.minecraft.client.gui.screens.TitleScreen(), false);
-                        }
+                        SpeedrunState.beginGiveUpAndDisconnect();
                         return 1;
                     })
                 )

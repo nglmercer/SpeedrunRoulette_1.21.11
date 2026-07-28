@@ -27,14 +27,13 @@ public class ReminderScreen extends Screen {
         // Button "Abandonner (Nouvel Objectif)"
         // Uses same logic as VictoryScreen "Nouvelle Run"
         this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.give_up"), (button) -> {
-            SpeedrunRoulette.pendingGiveUp = true;
+            if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay) {
+                return;
+            }
 
-            // Save Run Info (Failure)
-            SpeedrunState.saveRunInfo(false);
-
+            button.active = false;
             SpeedrunRoulette.LOGGER.info("Give Up clicked.");
-
-            this.minecraft.disconnect(new net.minecraft.client.gui.screens.TitleScreen(), false);
+            SpeedrunState.beginGiveUpAndDisconnect();
         }).bounds(this.width / 2 - buttonWidth / 2, this.height - 40 - buttonHeight - spacing, buttonWidth, buttonHeight).build());
     }
 

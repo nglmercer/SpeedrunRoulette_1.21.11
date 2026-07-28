@@ -142,21 +142,13 @@ public class SpeedrunRoulette {
                 SpeedrunState.onSystemPause(false);
             }
             
-            // Auto-Navigation for New Run (Moved from Init to Tick to wait for server shutdown)
-             if (SpeedrunState.autoTriggerCreateWorld) {
-                  // Debug Log (Throttled?)
-                  if (mc.player == null && mc.level == null) { // Only log in menus
-                      // SpeedrunRoulette.LOGGER.info("AutoNav: Trigger=true, Server=" + mc.getSingleplayerServer() + ", Screen=" + mc.screen);
+            // Auto-Navigation for New Run — only after the integrated server is fully gone
+             if (SpeedrunState.autoTriggerCreateWorld && SpeedrunState.canAutoNavigateMenus()) {
+                  if (mc.screen instanceof net.minecraft.client.gui.screens.TitleScreen) {
+                      SpeedrunRoulette.LOGGER.info("AutoNav: Transitioning TitleScreen -> SelectWorldScreen");
+                      mc.setScreen(new SelectWorldScreen(mc.screen));
                   }
-
-                  // Only proceed if server is stopped
-                  if (mc.getSingleplayerServer() == null) {
-                       if (mc.screen instanceof net.minecraft.client.gui.screens.TitleScreen) {
-                           SpeedrunRoulette.LOGGER.info("AutoNav: Transitioning TitleScreen -> SelectWorldScreen");
-                           mc.setScreen(new SelectWorldScreen(mc.screen));
-                       } 
-                       // Remove manual OpenFresh call, let SpeedrunState handle button click in SelectWorldScreen
-                  }
+                  // SelectWorldScreen / CreateWorldScreen button clicks are handled in SpeedrunState.onScreenInit
              }
 
             // Folder renaming logic removed as per request to prevent infinite loading.
@@ -179,45 +171,37 @@ public class SpeedrunRoulette {
         @SubscribeEvent
         public void onScreenInit(ScreenEvent.Init.Post event) {
             if (event.getScreen() instanceof net.minecraft.client.gui.screens.TitleScreen) {
-                if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun) {
+                boolean startingNew = SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun;
+                boolean startingRetry = SpeedrunRoulette.pendingReplay;
+
+                if (startingNew) {
                     LOGGER.info("TitleScreen: Preparing for New Game (Clear Objectives)");
-                    SpeedrunState.prepareForNewGame();
-                } else if (SpeedrunRoulette.pendingReplay) {
+                    // May already have been prepared by beginGiveUpAndDisconnect / commands
+                    if (SpeedrunState.hasActiveObjectives() || SpeedrunState.isKeepObjectivesForNextRun()) {
+                        SpeedrunState.prepareForNewGame();
+                    }
+                    SpeedrunState.autoTriggerCreateWorld = true;
+                } else if (startingRetry) {
                     LOGGER.info("TitleScreen: Preparing for Retry (Keep Objectives)");
                     SpeedrunState.prepareForRetry();
                 }
 
-                if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay) {
-                    // Trigger auto-navigation to create world screen
-                    if (SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingGiveUp) {
-                        SpeedrunState.autoTriggerCreateWorld = true;
-                    }
-
+                if (startingNew || startingRetry) {
                     SpeedrunRoulette.pendingGiveUp = false;
                     SpeedrunRoulette.pendingNewRun = false;
                     SpeedrunRoulette.pendingReplay = false;
                     SpeedrunRoulette.pendingVictoryTime = null;
                     SpeedrunRoulette.pendingVictoryObjectiveName = null;
                     SpeedrunRoulette.hasCheckedAutoOpen = false;
-                    SpeedrunState.finishTransition();
+                    // Keep isTransitioning true while auto-nav runs; finish when world create starts
+                    // or when auto-nav is not requested (retry just returns to menu flow).
+                    if (!SpeedrunState.autoTriggerCreateWorld) {
+                        SpeedrunState.finishTransition();
+                    }
                 }
             }
 
-            // Auto-Navigation moved to ClientTick
-            /*
-            if (SpeedrunState.autoTriggerCreateWorld) {
-                 if (event.getScreen() instanceof net.minecraft.client.gui.screens.TitleScreen) {
-                     // Go to Select World
-                     Minecraft.getInstance().setScreen(new SelectWorldScreen(event.getScreen()));
-                 } else if (event.getScreen() instanceof SelectWorldScreen) {
-                     // Go to Create World
-                     CreateWorldScreen.openFresh(Minecraft.getInstance(), null);
-                 }
-            }
-            */
-
             SpeedrunState.onScreenInit(event);
-            // We rely on ClientTick to handle pause state now.
         }
 
         @SubscribeEvent

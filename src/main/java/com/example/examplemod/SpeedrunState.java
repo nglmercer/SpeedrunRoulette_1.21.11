@@ -71,6 +71,53 @@ public class SpeedrunState {
         isTransitioning = false;
     }
 
+    /**
+     * Give up current run: save failure info, clear objectives, disconnect, then auto-open create world.
+     * Safe to call from UI or commands; ignores duplicate clicks while a transition is already pending.
+     */
+    public static void beginGiveUpAndDisconnect() {
+        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay) {
+            return;
+        }
+
+        SpeedrunRoulette.pendingGiveUp = true;
+        isTransitioning = true;
+
+        // Capture run info before clearing objectives
+        if (hasActiveObjectives()) {
+            saveRunInfo(false);
+        }
+
+        // Prepare next run state now so TitleScreen does not depend on a second pass
+        prepareForNewGame();
+        autoTriggerCreateWorld = true;
+        SpeedrunRoulette.hasCheckedAutoOpen = false;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level != null) {
+            mc.disconnect(new TitleScreen(), false);
+        } else {
+            // Already in menus: auto-nav via ClientTick (autoTriggerCreateWorld already set)
+            SpeedrunRoulette.pendingGiveUp = false;
+            if (!(mc.screen instanceof TitleScreen)) {
+                mc.setScreen(new TitleScreen());
+            }
+        }
+    }
+
+    /**
+     * True only when the integrated server is fully gone and the client is back in pure menu mode.
+     * Used to avoid auto-nav while "Saving world" is still running (prevents loops / stuck states).
+     */
+    public static boolean canAutoNavigateMenus() {
+        Minecraft mc = Minecraft.getInstance();
+        return mc.getSingleplayerServer() == null
+            && mc.level == null
+            && mc.player == null
+            && !(mc.screen instanceof net.minecraft.client.gui.screens.GenericMessageScreen)
+            && !(mc.screen instanceof net.minecraft.client.gui.screens.LevelLoadingScreen);
+    }
+
     // Splits
     private static final java.util.Map<String, String> splits = new java.util.LinkedHashMap<>();
     private static net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> lastDimension = net.minecraft.world.level.Level.OVERWORLD;
@@ -410,7 +457,32 @@ public class SpeedrunState {
     public static void onClientTick() {
         Minecraft mc = Minecraft.getInstance();
 
-        // Safety: If we are in the process of giving up or restarting, do NOT run tick logic
+        // Auto create world logic must run even during transitions (button may become active a few ticks later)
+        if (autoTriggerCreateWorld && mc.screen instanceof CreateWorldScreen screen) {
+            for (net.minecraft.client.gui.components.events.GuiEventListener child : screen.children()) {
+                if (child instanceof Button btn) {
+                    if (btn.getMessage().equals(Component.translatable("selectWorld.create"))) {
+                         if (btn.active) {
+                             autoTriggerCreateWorld = false; // Set false BEFORE action to prevent recursion
+                             finishTransition();
+                             try {
+                                 pressButton(btn);
+                             } catch (Throwable t) {
+                                 try {
+                                      java.lang.reflect.Method onPressMethod = Button.class.getMethod("onPress");
+                                      onPressMethod.invoke(btn);
+                                 } catch (Throwable t2) {
+                                     SpeedrunRoulette.LOGGER.error("Failed to auto-press Create World", t2);
+                                 }
+                             }
+                         }
+                         break;
+                    }
+                }
+            }
+        }
+
+        // Safety: If we are in the process of giving up or restarting, do NOT run gameplay tick logic
         if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingNewRun || isTransitioning) {
             return;
         }
@@ -566,48 +638,10 @@ public class SpeedrunState {
                          }
                      }
                      
-                     mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0F));
-                     mc.setScreen(new VictoryScreen());
-                 }
-             }
-        }
-        
-        // Auto create world logic
-        if (autoTriggerCreateWorld && mc.screen instanceof CreateWorldScreen screen) {
-            // Find "Create New World" button
-            // In 1.20/1.21, buttons are in children.
-            // We can iterate children or look for specific button logic.
-            // Since we can't easily find by text without iterating, we'll try to trigger the action directly if possible.
-            // Or access the button via reflection/access transformer.
-            
-            // Simpler approach: CreateWorldScreen has a 'onCreate()' method or similar.
-            // But 'screen.onCreate()' is protected/private usually.
-            
-            // Let's try to find a Button with message "Create New World" (or translation key)
-            
-            for (net.minecraft.client.gui.components.events.GuiEventListener child : screen.children()) {
-                if (child instanceof Button btn) {
-                    if (btn.getMessage().equals(Component.translatable("selectWorld.create"))) {
-                         if (btn.active) {
-                             autoTriggerCreateWorld = false; // Set false BEFORE action to prevent recursion
-                             try {
-                                 // Use reflection to call onPress to avoid signature issues
-                                 java.lang.reflect.Method onPressMethod = net.minecraft.client.gui.components.Button.class.getMethod("onPress");
-                                 onPressMethod.invoke(btn);
-                             } catch (Throwable t) {
-                                 try {
-                                      // Try field access if method fails
-                                      java.lang.reflect.Field f = net.minecraft.client.gui.components.Button.class.getDeclaredField("onPress");
-                                      f.setAccessible(true);
-                                      net.minecraft.client.gui.components.Button.OnPress onPress = (net.minecraft.client.gui.components.Button.OnPress) f.get(btn);
-                                      onPress.onPress(btn);
-                                 } catch (Throwable t2) {}
-                             }
-                         }
-                         break;
-                    }
-                }
-            }
+mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0F));
+                      mc.setScreen(new VictoryScreen());
+                  }
+              }
         }
     }
     
@@ -977,44 +1011,20 @@ public class SpeedrunState {
              event.addListener(Button.builder(Component.translatable("gui.examplemod.speedrun_config_button"), (btn) -> {
                  Minecraft.getInstance().setScreen(new SpeedrunConfigScreen(event.getScreen()));
              }).bounds(10, 10, 100, 20).build());
-             
-             // Auto-trigger Create World if requested
-             if (autoTriggerCreateWorld) {
-                 // Simulate click on "Singleplayer" -> "Create New World".
-                 for (net.minecraft.client.gui.components.events.GuiEventListener child : event.getScreen().children()) {
-                    if (child instanceof Button btn) {
-                        if (btn.getMessage().equals(Component.translatable("menu.singleplayer"))) {
-                             // Simulate click via reflection
-                             try {
-                                 // Try accessing onPress field directly (most reliable for Button)
-                                 java.lang.reflect.Field f = net.minecraft.client.gui.components.Button.class.getDeclaredField("onPress");
-                                 f.setAccessible(true);
-                                 net.minecraft.client.gui.components.Button.OnPress onPress = (net.minecraft.client.gui.components.Button.OnPress) f.get(btn);
-                                 onPress.onPress(btn);
-                             } catch (Throwable t) {
-                                 // Fallback to method if field fails (unlikely)
-                             }
-                             break;
-                        }
-                    }
-                }
-             }
+             // Do NOT click Singleplayer here. ClientTick waits until the old server is fully stopped,
+             // then opens SelectWorldScreen. Clicking early races with "Saving world" and loops.
         }
-        
+
         if (event.getScreen() instanceof net.minecraft.client.gui.screens.worldselection.SelectWorldScreen) {
-            if (autoTriggerCreateWorld) {
-                 // com.example.examplemod.SpeedrunRoulette.LOGGER.info("SpeedrunState: Searching for 'Create New World' button in SelectWorldScreen...");
+            if (autoTriggerCreateWorld && canAutoNavigateMenus()) {
                  for (net.minecraft.client.gui.components.events.GuiEventListener child : event.getScreen().children()) {
                     if (child instanceof Button btn) {
                         if (btn.getMessage().equals(Component.translatable("selectWorld.create"))) {
-                             com.example.examplemod.SpeedrunRoulette.LOGGER.info("SpeedrunState: Clicking 'Create New World'");
+                             SpeedrunRoulette.LOGGER.info("SpeedrunState: Clicking 'Create New World'");
                              try {
-                                 java.lang.reflect.Field f = net.minecraft.client.gui.components.Button.class.getDeclaredField("onPress");
-                                 f.setAccessible(true);
-                                 net.minecraft.client.gui.components.Button.OnPress onPress = (net.minecraft.client.gui.components.Button.OnPress) f.get(btn);
-                                 onPress.onPress(btn);
+                                 pressButton(btn);
                              } catch (Throwable t) {
-                                 com.example.examplemod.SpeedrunRoulette.LOGGER.error("SpeedrunState: Failed to click Create button", t);
+                                 SpeedrunRoulette.LOGGER.error("SpeedrunState: Failed to click Create button", t);
                              }
                              break;
                         }
@@ -1022,28 +1032,24 @@ public class SpeedrunState {
                 }
             }
         }
-        
+
         // Handle CreateWorldScreen init too (try to click immediately if active)
         if (event.getScreen() instanceof CreateWorldScreen) {
             if (autoTriggerCreateWorld) {
-                 // com.example.examplemod.SpeedrunRoulette.LOGGER.info("SpeedrunState: Searching for 'Create' button in CreateWorldScreen...");
                  for (net.minecraft.client.gui.components.events.GuiEventListener child : event.getScreen().children()) {
                     if (child instanceof Button btn) {
                         if (btn.getMessage().equals(Component.translatable("selectWorld.create"))) {
-                             // Only click if active!
                              if (btn.active) {
-                                 com.example.examplemod.SpeedrunRoulette.LOGGER.info("SpeedrunState: Clicking 'Create' (Final)");
+                                 SpeedrunRoulette.LOGGER.info("SpeedrunState: Clicking 'Create' (Final)");
                                  autoTriggerCreateWorld = false;
+                                 finishTransition();
                                  try {
-                                     java.lang.reflect.Field f = net.minecraft.client.gui.components.Button.class.getDeclaredField("onPress");
-                                     f.setAccessible(true);
-                                     net.minecraft.client.gui.components.Button.OnPress onPress = (net.minecraft.client.gui.components.Button.OnPress) f.get(btn);
-                                     onPress.onPress(btn);
+                                     pressButton(btn);
                                  } catch (Throwable t) {
-                                     com.example.examplemod.SpeedrunRoulette.LOGGER.error("SpeedrunState: Failed to click Final Create button", t);
+                                     SpeedrunRoulette.LOGGER.error("SpeedrunState: Failed to click Final Create button", t);
                                  }
                              } else {
-                                 com.example.examplemod.SpeedrunRoulette.LOGGER.info("SpeedrunState: Final Create button not active yet.");
+                                 SpeedrunRoulette.LOGGER.info("SpeedrunState: Final Create button not active yet.");
                              }
                              break;
                         }
@@ -1051,6 +1057,13 @@ public class SpeedrunState {
                 }
             }
         }
+    }
+
+    private static void pressButton(Button btn) throws Exception {
+        java.lang.reflect.Field f = Button.class.getDeclaredField("onPress");
+        f.setAccessible(true);
+        Button.OnPress onPress = (Button.OnPress) f.get(btn);
+        onPress.onPress(btn);
     }
     
     private static void checkAdvancement(net.minecraft.client.multiplayer.ClientAdvancements advancements, String id, String splitName) {

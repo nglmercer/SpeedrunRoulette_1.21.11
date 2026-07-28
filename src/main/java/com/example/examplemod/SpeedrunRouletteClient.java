@@ -131,21 +131,14 @@ public class SpeedrunRouletteClient implements ClientModInitializer {
         if (list == null) return;
 
         try {
-            java.lang.reflect.Method getRowTop = net.minecraft.client.gui.components.AbstractSelectionList.class.getDeclaredMethod("getRowTop", int.class);
-            getRowTop.setAccessible(true);
-            java.lang.reflect.Method getRowLeft = net.minecraft.client.gui.components.AbstractSelectionList.class.getDeclaredMethod("getRowLeft");
-            getRowLeft.setAccessible(true);
-            java.lang.reflect.Method getRowWidth = net.minecraft.client.gui.components.AbstractSelectionList.class.getDeclaredMethod("getRowWidth");
-            getRowWidth.setAccessible(true);
-
             java.util.List<?> children = list.children();
-            int rowLeft = (int) getRowLeft.invoke(list);
-            int rowWidth = (int) getRowWidth.invoke(list);
+            int rowLeft = list.getRowLeft();
+            int rowWidth = list.getRowWidth();
 
             for (int i = 0; i < children.size(); i++) {
                 Object entryObj = children.get(i);
                 if (entryObj instanceof net.minecraft.client.gui.screens.worldselection.WorldSelectionList.WorldListEntry entry) {
-                    int top = (int) getRowTop.invoke(list, i);
+                    int top = list.getRowTop(i);
                     if (top < 0 || top > selectWorldScreen.height) continue;
 
                     net.minecraft.world.level.storage.LevelSummary summary = entry.getLevelSummary();

@@ -110,17 +110,11 @@ public class SpeedrunAutoNav {
         }
     }
 
-    private static void pressButton(Button btn) throws Exception {
-        try {
-            java.lang.reflect.Field f = Button.class.getDeclaredField("onPress");
-            f.setAccessible(true);
-            Button.OnPress onPress = (Button.OnPress) f.get(btn);
-            onPress.onPress(btn);
-            return;
-        } catch (NoSuchFieldException ignored) {
-        }
-        java.lang.reflect.Method onPressMethod = Button.class.getMethod("onPress");
-        onPressMethod.invoke(btn);
+    private static void pressButton(Button btn) {
+        btn.onPress(new net.minecraft.client.input.InputWithModifiers() {
+            @Override public int input() { return 257; }
+            @Override public int modifiers() { return 0; }
+        });
     }
 
     public static void cancel() {

@@ -116,23 +116,13 @@ public class Objective {
             net.minecraft.resources.Identifier loc = net.minecraft.resources.Identifier.tryParse(advId);
             if (loc == null) return false;
 
-            java.lang.reflect.Field progressField =
-                    net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredField("progress");
-            progressField.setAccessible(true);
-            java.util.Map<?, ?> progressMap = (java.util.Map<?, ?>) progressField.get(advancements);
-
-            for (java.util.Map.Entry<?, ?> entry : progressMap.entrySet()) {
-                Object holder = entry.getKey();
-                Object prog = entry.getValue();
-                java.lang.reflect.Method idMethod = holder.getClass().getMethod("id");
-                net.minecraft.resources.Identifier id = (net.minecraft.resources.Identifier) idMethod.invoke(holder);
-                if (id.equals(loc)) {
-                    java.lang.reflect.Method isDoneMethod = prog.getClass().getMethod("isDone");
-                    return (boolean) isDoneMethod.invoke(prog);
+            for (java.util.Map.Entry<net.minecraft.advancements.AdvancementHolder, net.minecraft.advancements.AdvancementProgress> entry : advancements.progress.entrySet()) {
+                if (entry.getKey().id().equals(loc)) {
+                    return entry.getValue().isDone();
                 }
             }
         } catch (Throwable t) {
-            // Ignore reflection / dist issues
+            // Ignore errors
         }
         return false;
     }

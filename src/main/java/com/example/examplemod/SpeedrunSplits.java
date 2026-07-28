@@ -82,29 +82,16 @@ public class SpeedrunSplits {
         if (loc == null) return;
 
         try {
-            java.lang.reflect.Field progressField =
-                net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredField("progress");
-            progressField.setAccessible(true);
-            java.util.Map<?, ?> progressMap = (java.util.Map<?, ?>) progressField.get(advancements);
-
-            for (java.util.Map.Entry<?, ?> entry : progressMap.entrySet()) {
-                Object holder = entry.getKey();
-                Object prog = entry.getValue();
-
-                java.lang.reflect.Method idMethod = holder.getClass().getMethod("id");
-                Identifier advId = (Identifier) idMethod.invoke(holder);
-
-                if (advId.equals(loc)) {
-                    java.lang.reflect.Method isDoneMethod = prog.getClass().getMethod("isDone");
-                    boolean done = (boolean) isDoneMethod.invoke(prog);
-                    if (done) {
+            for (Map.Entry<net.minecraft.advancements.AdvancementHolder, net.minecraft.advancements.AdvancementProgress> entry : advancements.progress.entrySet()) {
+                if (entry.getKey().id().equals(loc)) {
+                    if (entry.getValue().isDone()) {
                         record(splitName);
                     }
                     return;
                 }
             }
         } catch (Throwable t) {
-            // Ignore reflection errors to prevent crash
+            // Ignore errors to prevent crash
         }
     }
 }

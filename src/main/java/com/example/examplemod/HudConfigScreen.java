@@ -13,6 +13,7 @@ public class HudConfigScreen extends Screen {
     private int activeTab = 0;
     private int scrollOffset = 0;
     private int maxScroll = 0;
+    private boolean previewVictory = true;
     private static final String[] TAB_KEYS = {"gui.examplemod.hud_config.tab.hud", "gui.examplemod.hud_config.tab.end_screens"};
     private static final int TAB_WIDTH = 80;
     private static final int OPTIONS_WIDTH = 170;
@@ -82,6 +83,17 @@ public class HudConfigScreen extends Screen {
             addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.stats_color", Config.HUD_STATS_COLOR); y += gap;
             addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.completed_color", Config.HUD_COMPLETED_COLOR); y += gap;
         } else {
+            this.addRenderableWidget(Button.builder(
+                Component.translatable("gui.examplemod.end_config.preview_toggle", previewVictory
+                    ? Component.translatable("gui.examplemod.end_config.preview.victory").getString()
+                    : Component.translatable("gui.examplemod.end_config.preview.lose").getString()),
+                (btn) -> {
+                    previewVictory = !previewVictory;
+                    this.rebuildWidgets();
+                }
+            ).bounds(x, y, w, h).build());
+            y += gap;
+
             this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.end_config.show_stats", Config.END_SHOW_STATS)); y += gap;
             this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.end_config.show_splits", Config.END_SHOW_SPLITS)); y += gap;
             this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.end_config.show_icon", Config.END_SHOW_ICON)); y += gap;
@@ -194,7 +206,11 @@ public class HudConfigScreen extends Screen {
             SpeedrunHud.renderPreviewHudAt(g, previewX, previewY + 16, previewW, previewH - 20);
         } else {
             g.drawCenteredString(this.font, Component.translatable("gui.examplemod.end_config.preview"), previewX + previewW / 2, previewY + 4, 0xFFAAAAAA);
-            renderEndScreenPreview(g, previewX, previewY + 16, previewW, previewH - 20);
+            if (previewVictory) {
+                renderVictoryPreview(g, previewX, previewY + 16, previewW, previewH - 20);
+            } else {
+                renderLosePreview(g, previewX, previewY + 16, previewW, previewH - 20);
+            }
         }
 
         if (maxScroll > 0) {
@@ -202,7 +218,7 @@ public class HudConfigScreen extends Screen {
         }
     }
 
-    private void renderEndScreenPreview(GuiGraphics g, int x, int y, int w, int h) {
+    private void renderVictoryPreview(GuiGraphics g, int x, int y, int w, int h) {
         int bgAlpha = (int)(Config.END_BG_OPACITY.get() * 255) & 0xFF;
         g.fill(x, y, x + w, y + h, (bgAlpha << 24));
         g.renderOutline(x, y, w, h, 0xFFFFFFFF);
@@ -240,6 +256,38 @@ public class HudConfigScreen extends Screen {
             cy += 10;
             g.drawCenteredString(this.font, "Nether: 02:15", cx, cy, 0xFFDDDDDD);
         }
+    }
+
+    private void renderLosePreview(GuiGraphics g, int x, int y, int w, int h) {
+        int bgAlpha = (int)(Config.END_BG_OPACITY.get() * 255) & 0xFF;
+        g.fill(x, y, x + w, y + h, (bgAlpha << 24) | 0x220000);
+        g.renderOutline(x, y, w, h, 0xFFFFFFFF);
+
+        int cx = x + w / 2;
+        int cy = y + 10;
+
+        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.defeat_title").withStyle(net.minecraft.ChatFormatting.BOLD, net.minecraft.ChatFormatting.RED), cx, cy, 0xFFFF5555);
+        cy += 14;
+
+        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.defeat_subtitle"), cx, cy, 0xFFFFFFFF);
+        cy += 14;
+
+        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.winner_label", "Player2").withStyle(net.minecraft.ChatFormatting.GOLD), cx, cy, 0xFFFFD700);
+        cy += 14;
+
+        g.drawCenteredString(this.font, "00:38.000", cx, cy, 0xFFFF5555);
+        cy += 14;
+
+        java.util.List<Objective> objs = SpeedrunState.getObjectives();
+        if (objs != null && !objs.isEmpty()) {
+            Component objName = objs.size() > 1
+                ? Component.translatable("gui.examplemod.item_list", objs.size())
+                : objs.get(0).getDisplayName();
+            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.objective_label").append(" ").append(objName), cx, cy, 0xFFAAAAAA);
+            cy += 14;
+        }
+
+        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.mode.challenge").withStyle(net.minecraft.ChatFormatting.DARK_RED), cx, cy, 0xFFFFAAAA);
     }
 
     private class HueSlider extends AbstractSliderButton {

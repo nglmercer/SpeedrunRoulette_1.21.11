@@ -25,8 +25,9 @@ public class SpeedrunState {
 
     public static boolean keepObjectivesForNextRun = false;
 
-    private static boolean disconnectScheduled = false;
+    private static boolean waitingForServerStop = false;
     private static String disconnectLabel = "";
+    private static int serverStopWaitTicks = 0;
 
     /**
      * True while a disconnect is pending or in-progress on the render thread.
@@ -322,9 +323,19 @@ public class SpeedrunState {
             trySaveRunInfo(false);
             SpeedrunRoulette.LOGGER.info("[Transition][{}] Capturing level ID...", label);
             captureLevelId(mc);
-            SpeedrunRoulette.LOGGER.info("[Transition][{}] Scheduling disconnect for next tick", label);
-            disconnectScheduled = true;
-            disconnectLabel = label;
+
+            net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
+            if (server != null) {
+                SpeedrunRoulette.LOGGER.info("[Transition][{}] Halting integrated server (non-blocking)...", label);
+                server.halt(false);
+                waitingForServerStop = true;
+                disconnectLabel = label;
+                serverStopWaitTicks = 0;
+            } else {
+                SpeedrunRoulette.LOGGER.info("[Transition][{}] No server, going to TitleScreen directly", label);
+                mc.setScreen(new TitleScreen());
+                handleTitleScreenArrival(mc);
+            }
         } else {
             SpeedrunRoulette.LOGGER.info("[Transition][{}] No active world, handling TitleScreen arrival directly", label);
             handleTitleScreenArrival(mc);
@@ -479,11 +490,19 @@ public class SpeedrunState {
     public static void onClientTick() {
         Minecraft mc = Minecraft.getInstance();
 
-        if (disconnectScheduled) {
-            disconnectScheduled = false;
-            SpeedrunRoulette.LOGGER.info("[Transition][{}] Executing deferred mc.disconnect()", disconnectLabel);
-            mc.disconnect(new TitleScreen(), false);
-            SpeedrunRoulette.LOGGER.info("[Transition][{}] mc.disconnect() returned", disconnectLabel);
+        if (waitingForServerStop) {
+            serverStopWaitTicks++;
+            net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
+            boolean gone = (server == null || !server.isRunning());
+
+            if (gone || serverStopWaitTicks > 200) {
+                waitingForServerStop = false;
+                SpeedrunRoulette.LOGGER.info("[Transition][{}] Server stopped after {} ticks (forced={})",
+                    disconnectLabel, serverStopWaitTicks, !gone);
+                serverStopWaitTicks = 0;
+                mc.disconnect(new TitleScreen(), false);
+                SpeedrunRoulette.LOGGER.info("[Transition][{}] mc.disconnect() returned", disconnectLabel);
+            }
             return;
         }
 

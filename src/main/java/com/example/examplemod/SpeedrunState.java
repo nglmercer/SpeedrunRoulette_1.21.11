@@ -17,6 +17,13 @@ public class SpeedrunState {
     private static boolean objectivesLoaded = false;
     private static int autoOpenDelayTicks = 0;
 
+    /** Active multiplayer mode for the current run (synced from server when multiplayer). */
+    private static SpeedrunGameMode activeGameMode = SpeedrunGameMode.COOPERATIVE;
+    private static boolean runFinished = false;
+    private static String lastWinnerName = "";
+    private static String lastWinnerUuid = "";
+    private static boolean finishClaimPending = false;
+
     public static boolean keepObjectivesForNextRun = false;
 
     /**
@@ -34,6 +41,10 @@ public class SpeedrunState {
         objectivesCompleted = false;
         objectivesLoaded = true;
         autoOpenDelayTicks = 0;
+        runFinished = false;
+        finishClaimPending = false;
+        lastWinnerName = "";
+        lastWinnerUuid = "";
         if (Config.AUTO_START.get() && !objs.isEmpty()) {
             SpeedrunTimer.start();
         }
@@ -46,14 +57,116 @@ public class SpeedrunState {
         setObjectives(objs, true);
     }
 
+    public static SpeedrunGameMode getActiveGameMode() {
+        return activeGameMode;
+    }
+
+    public static void setActiveGameMode(SpeedrunGameMode mode) {
+        activeGameMode = mode != null ? mode : SpeedrunGameMode.COOPERATIVE;
+    }
+
+    public static boolean isRunFinished() {
+        return runFinished;
+    }
+
+    public static String getLastWinnerName() {
+        return lastWinnerName;
+    }
+
+    /**
+     * Apply full run state from the server (multiplayer join / objective broadcast).
+     */
+    public static void applySyncedRunState(SpeedrunNetwork.SyncRunStatePacket payload) {
+        if (payload == null) return;
+        activeGameMode = payload.gameMode;
+        setObjectives(payload.objectives, false);
+        runFinished = payload.runFinished;
+        lastWinnerUuid = payload.winnerUuid != null ? payload.winnerUuid : "";
+        lastWinnerName = payload.winnerName != null ? payload.winnerName : "";
+        if (payload.runFinished && payload.finishTime != null && !payload.finishTime.isEmpty()) {
+            SpeedrunRoulette.pendingVictoryTime = payload.finishTime;
+        }
+        // If we joined mid-finished challenge run, show the appropriate end screen once.
+        if (payload.runFinished && !objectivesCompleted) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null) {
+                boolean localWin = payload.winnerUuid != null
+                        && payload.winnerUuid.equals(mc.player.getUUID().toString());
+                boolean coop = payload.gameMode == SpeedrunGameMode.COOPERATIVE;
+                objectivesCompleted = true;
+                SpeedrunTimer.markCompleted();
+                if (coop || localWin) {
+                    if (!(mc.screen instanceof VictoryScreen)) {
+                        mc.setScreen(new VictoryScreen());
+                    }
+                } else if (!(mc.screen instanceof LoseScreen)) {
+                    mc.setScreen(new LoseScreen(payload.winnerName, payload.finishTime));
+                }
+            }
+        }
+    }
+
+    /**
+     * Server announced a finish — show victory (self/co-op) or defeat (challenge loss).
+     */
+    public static void handleRunFinished(SpeedrunNetwork.RunFinishedPacket payload) {
+        if (payload == null) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+
+        runFinished = true;
+        finishClaimPending = false;
+        activeGameMode = payload.gameMode;
+        lastWinnerName = payload.winnerName;
+        lastWinnerUuid = payload.winnerUuid;
+        objectivesCompleted = true;
+        SpeedrunTimer.markCompleted();
+
+        SpeedrunRoulette.pendingVictoryTime = payload.finishTime;
+        if (objectives != null && !objectives.isEmpty()) {
+            if (objectives.size() > 1) {
+                SpeedrunRoulette.pendingVictoryObjectiveName =
+                        Component.translatable("gui.examplemod.item_list", objectives.size()).getString();
+            } else {
+                SpeedrunRoulette.pendingVictoryObjectiveName =
+                        objectives.get(0).getDisplayName().getString();
+            }
+        }
+
+        boolean localWin = payload.isLocalPlayerWinner(mc.player.getUUID());
+        boolean coop = payload.gameMode == SpeedrunGameMode.COOPERATIVE;
+
+        mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
+                coop || localWin
+                        ? net.minecraft.sounds.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE
+                        : net.minecraft.sounds.SoundEvents.RAID_HORN,
+                1.0F));
+
+        if (coop || localWin) {
+            if (!(mc.screen instanceof VictoryScreen)) {
+                mc.setScreen(new VictoryScreen());
+            }
+        } else {
+            if (!(mc.screen instanceof LoseScreen)) {
+                mc.setScreen(new LoseScreen(payload.winnerName, payload.finishTime));
+            }
+        }
+    }
+
     public static void saveObjectivesToWorld() {
         Minecraft mc = Minecraft.getInstance();
+        // Prefer config mode when host starts a run; world data is source of truth after sync
+        activeGameMode = Config.getGameMode();
         net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
         if (server != null) {
             SpeedrunWorldData data = SpeedrunWorldData.get(server);
+            data.setGameMode(activeGameMode);
             data.setObjectives(objectives);
+            // Integrated server (LAN): broadcast so other clients get the same sample
+            SpeedrunNetwork.broadcastRunState(server);
         } else if (mc.player != null) {
-            SpeedrunNetwork.sendToServer(new SpeedrunNetwork.SaveObjectivesPacket(new ArrayList<>(objectives)));
+            SpeedrunNetwork.sendToServer(new SpeedrunNetwork.SaveObjectivesPacket(
+                    new ArrayList<>(objectives), activeGameMode));
         }
     }
 
@@ -66,6 +179,10 @@ public class SpeedrunState {
         objectivesCompleted = false;
         objectivesLoaded = true;
         autoOpenDelayTicks = 0;
+        runFinished = false;
+        finishClaimPending = false;
+        lastWinnerName = "";
+        lastWinnerUuid = "";
     }
 
     public static boolean hasActiveObjectives() {
@@ -357,30 +474,63 @@ public class SpeedrunState {
             }
 
             if (SpeedrunTimer.isRunning() && !SpeedrunTimer.isPaused() && !mc.isPaused()) {
-                if (areObjectivesComplete(mc.player)) {
-                    objectivesCompleted = true;
-                    SpeedrunTimer.markCompleted();
+                if (!runFinished && !finishClaimPending && !objectivesCompleted
+                        && areObjectivesComplete(mc.player)) {
+                    String time = SpeedrunTimer.getFormattedTimeFromNanos(
+                            SpeedrunTimer.isCompleted()
+                                    ? SpeedrunTimer.getFinalElapsedNanos()
+                                    : SpeedrunTimer.getElapsedNanosSafe());
 
-                    SpeedrunRoulette.pendingVictoryTime =
-                        SpeedrunTimer.getFormattedTimeFromNanos(SpeedrunTimer.getFinalElapsedNanos());
+                    // Multiplayer / LAN: server decides winner so challenge races stay fair.
+                    // Singleplayer integrated host still claims through the same path so co-op
+                    // LAN guests get the result packet too.
+                    finishClaimPending = true;
+                    SpeedrunRoulette.pendingVictoryTime = time;
 
                     if (objectives != null && !objectives.isEmpty()) {
                         if (objectives.size() > 1) {
                             SpeedrunRoulette.pendingVictoryObjectiveName =
-                                Component.translatable("gui.examplemod.item_list", objectives.size()).getString();
+                                    Component.translatable("gui.examplemod.item_list", objectives.size()).getString();
                         } else {
                             SpeedrunRoulette.pendingVictoryObjectiveName =
-                                objectives.get(0).getDisplayName().getString();
+                                    objectives.get(0).getDisplayName().getString();
                         }
                     }
 
-                    mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
-                        net.minecraft.sounds.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0F));
-                    mc.setScreen(new VictoryScreen());
+                    net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
+                    if (server != null) {
+                        // Host of integrated server: resolve finish on server thread
+                        server.execute(() -> {
+                            if (mc.player instanceof net.minecraft.server.level.ServerPlayer sp) {
+                                SpeedrunNetwork.handleClaimFinish(sp, time);
+                            } else {
+                                // Client player entity on host — find matching ServerPlayer
+                                for (net.minecraft.server.level.ServerPlayer sp : server.getPlayerList().getPlayers()) {
+                                    if (sp.getUUID().equals(mc.player.getUUID())) {
+                                        SpeedrunNetwork.handleClaimFinish(sp, time);
+                                        break;
+                                    }
+                                }
+                            }
+                        });
+                    } else if (mc.player.connection != null) {
+                        SpeedrunNetwork.sendToServer(new SpeedrunNetwork.ClaimFinishPacket(time));
+                    } else {
+                        // Offline fallback: local-only victory
+                        finishClaimPending = false;
+                        objectivesCompleted = true;
+                        SpeedrunTimer.markCompleted();
+                        mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
+                                net.minecraft.sounds.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0F));
+                        mc.setScreen(new VictoryScreen());
+                    }
                 }
             }
         }
     }
+
+    /** Safe elapsed helper when timer may not have marked completed yet. */
+    // (delegates via package access if available; otherwise use formatted current time)
 
     private static boolean areObjectivesComplete(net.minecraft.world.entity.player.Player player) {
         if (objectives.isEmpty()) return false;

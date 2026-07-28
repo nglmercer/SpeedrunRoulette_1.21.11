@@ -114,8 +114,15 @@ public class PoolCustomizationScreen extends Screen {
     }
 
     public boolean handleMouseClick(double mouseX, double mouseY, int button) {
+        if (this.objectiveList == null) return false;
+
+        // Don't intercept clicks below the list viewport (where Save button lives)
+        if (mouseY >= objectiveList.getViewportBottom()) {
+            return false;
+        }
+
         // Manual hit test for widgets in the list
-        if (this.objectiveList != null) {
+        {
             int listTop = objectiveList.getViewportTop();
             int listBottom = objectiveList.getViewportBottom();
             int rowWidth = objectiveList.getRowWidth();

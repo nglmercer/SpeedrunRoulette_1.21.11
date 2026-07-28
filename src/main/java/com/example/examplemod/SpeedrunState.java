@@ -16,11 +16,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import net.minecraft.world.level.levelgen.structure.BuiltinStructures;
-import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.levelgen.structure.StructureStart;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import java.io.File;
@@ -1148,20 +1143,6 @@ public class SpeedrunState {
     public static void setAutoTriggerCreateWorld(boolean v) { autoTriggerCreateWorld = v; }
     public static boolean isAutoTriggerCreateWorld() { return autoTriggerCreateWorld; }
 
-    public static void setKeepObjectivesForNextRun(boolean v) { keepObjectivesForNextRun = v; }
+public static void setKeepObjectivesForNextRun(boolean v) { keepObjectivesForNextRun = v; }
     public static boolean isKeepObjectivesForNextRun() { return keepObjectivesForNextRun; }
-
-    private static void checkStructure(net.minecraft.server.level.ServerLevel level, net.minecraft.core.BlockPos pos, net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.structure.Structure> key, String name) {
-        if (splits.containsKey(name)) return;
-
-        net.minecraft.core.HolderLookup.RegistryLookup<net.minecraft.world.level.levelgen.structure.Structure> registry = level.registryAccess().lookup(net.minecraft.core.registries.Registries.STRUCTURE).orElse(null);
-        if (registry == null) return;
-
-        net.minecraft.world.level.levelgen.structure.Structure structure = registry.get(key).map(holder -> holder.value()).orElse(null);
-        if (structure != null) {
-            if (level.structureManager().getStructureWithPieceAt(pos, structure).isValid()) {
-                recordSplit(name);
-            }
-        }
-    }
 }

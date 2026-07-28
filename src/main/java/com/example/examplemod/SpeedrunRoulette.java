@@ -143,12 +143,12 @@ public class SpeedrunRoulette {
             }
             
             // Auto-Navigation for New Run — only after the integrated server is fully gone
-            if (SpeedrunState.autoTriggerCreateWorld && SpeedrunState.canAutoNavigateMenus()) {
-                SpeedrunState.tickAutoNavFromTitle(mc);
+            if (SpeedrunAutoNav.autoTriggerCreateWorld && SpeedrunAutoNav.canAutoNavigateMenus()) {
+                SpeedrunAutoNav.tickAutoNavFromTitle(mc);
             }
 
             // Skip input while saving/disconnecting so we don't open menus on top of "Saving world"
-            if (!SpeedrunState.isDisconnectingOrSaving()) {
+            if (!SpeedrunAutoNav.isDisconnectingOrSaving()) {
                 if (OPEN_WHEEL_KEY != null && OPEN_WHEEL_KEY.consumeClick()) {
                     SpeedrunState.openWheelOrReminder();
                 }
@@ -172,12 +172,12 @@ public class SpeedrunRoulette {
                 if (startingNew) {
                     LOGGER.info("TitleScreen: Preparing for New Game (Clear Objectives)");
                     SpeedrunState.prepareForNewGame();
-                    SpeedrunState.autoTriggerCreateWorld = true;
-                    SpeedrunState.resetAutoNavProgress();
+                    SpeedrunAutoNav.autoTriggerCreateWorld = true;
+                    SpeedrunAutoNav.resetProgress();
                 } else if (startingRetry) {
                     LOGGER.info("TitleScreen: Preparing for Retry (Keep Objectives)");
                     SpeedrunState.prepareForRetry();
-                    SpeedrunState.autoTriggerCreateWorld = false;
+                    SpeedrunAutoNav.autoTriggerCreateWorld = false;
                 }
 
                 if (startingNew || startingRetry) {
@@ -188,7 +188,7 @@ public class SpeedrunRoulette {
                     SpeedrunRoulette.pendingVictoryObjectiveName = null;
                     SpeedrunRoulette.hasCheckedAutoOpen = false;
                     // Keep isTransitioning while auto-nav runs; finish when Create is pressed.
-                    if (!SpeedrunState.autoTriggerCreateWorld) {
+                    if (!SpeedrunAutoNav.autoTriggerCreateWorld) {
                         SpeedrunState.finishTransition();
                     }
                 }

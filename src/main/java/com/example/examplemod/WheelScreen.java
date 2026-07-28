@@ -345,38 +345,16 @@ public class WheelScreen extends Screen {
         return false;
     }
     
-    // @Override removed because standard Screen.keyPressed is (int, int, int) but compiler claimed mismatch.
-    // However, if we remove @Override and the signature matches, it WILL override at runtime.
-    // If signature doesn't match, it won't be called.
-    // Let's verify standard 1.21 Screen.keyPressed signature:
-    // It is indeed: public boolean keyPressed(int keyCode, int scanCode, int modifiers)
-    // The previous error "required: KeyEvent" was likely a phantom error or due to incorrect imports/mappings momentarily?
-    // OR maybe I imported java.awt.event.KeyEvent by mistake? No.
-    // Let's try to compile WITHOUT @Override. If it works, we test if it works in game.
-    
-    // The compiler insists that Screen.keyPressed takes a "KeyEvent".
-    // This is NOT standard vanilla Minecraft (which uses int, int, int).
-    // This implies that we are using a library (maybe NeoForge's fancy mod loader or something?) that changes the signature.
-    // OR we are importing "com.mojang.blaze3d.platform.InputConstants" and maybe that's related?
-    
-    // However, since we don't know what "KeyEvent" is (and can't import it easily without knowing the package),
-    // and we only want to intercept ESCAPE...
-    // We can just NOT call super.keyPressed if we handle it.
-    // If we don't handle it, we want to call super.
-    
-    // But we can't call super with (int, int, int) because it doesn't exist.
-    // So we MUST return false/true directly.
-    
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    @Override
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent keyEvent) {
+        int keyCode = keyEvent.key();
         if (keyCode == 256) { // ESCAPE
              if (state == State.SHOWING_RESULT) {
                  confirmSelection();
                  return true;
              }
-             return true; 
+             return true;
         }
-        // Since we can't call super.keyPressed(int, int, int), we just return false (not handled).
-        // This might break other key handling (like typing in text fields if any), but WheelScreen has no text fields.
         return false;
     }
     

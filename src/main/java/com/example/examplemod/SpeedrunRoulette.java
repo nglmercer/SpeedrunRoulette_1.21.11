@@ -126,7 +126,7 @@ public class SpeedrunRoulette {
 
             // Auto-open wheel logic
             Minecraft mc = Minecraft.getInstance();
-            if (mc.player != null && !SpeedrunRoulette.hasCheckedAutoOpen) {
+            if (mc.player != null && !SpeedrunRoulette.hasCheckedAutoOpen && SpeedrunState.isObjectivesLoaded()) {
                 SpeedrunRoulette.hasCheckedAutoOpen = true;
                 SpeedrunState.checkAutoOpen();
             }
@@ -228,19 +228,17 @@ public class SpeedrunRoulette {
                     int rowLeft = (int) getRowLeft.invoke(list);
                     int rowWidth = (int) getRowWidth.invoke(list);
                     
-                    for (int i = 0; i < children.size(); i++) {
-                         Object entryObj = children.get(i);
-                         if (entryObj instanceof net.minecraft.client.gui.screens.worldselection.WorldSelectionList.WorldListEntry entry) {
-                             int top = (int) getRowTop.invoke(list, i);
-                             
-                             // Check visibility (simplified)
-                             if (top < 0 || top > screen.height) continue;
-                             
-                             java.lang.reflect.Field summaryField = net.minecraft.client.gui.screens.worldselection.WorldSelectionList.WorldListEntry.class.getDeclaredField("summary");
-                             summaryField.setAccessible(true);
-                             net.minecraft.world.level.storage.LevelSummary summary = (net.minecraft.world.level.storage.LevelSummary) summaryField.get(entry);
-                             
-                             SpeedrunRunInfo.RunInfo info = SpeedrunRunInfo.get(summary.getLevelId());
+                     for (int i = 0; i < children.size(); i++) {
+                          Object entryObj = children.get(i);
+                          if (entryObj instanceof net.minecraft.client.gui.screens.worldselection.WorldSelectionList.WorldListEntry entry) {
+                              int top = (int) getRowTop.invoke(list, i);
+
+                              // Check visibility (simplified)
+                              if (top < 0 || top > screen.height) continue;
+
+                              net.minecraft.world.level.storage.LevelSummary summary = entry.getLevelSummary();
+
+                              SpeedrunRunInfo.RunInfo info = SpeedrunRunInfo.get(summary.getLevelId());
                              
                              if (info.hasInfo) {
                                  // Icon Position: Right side of entry

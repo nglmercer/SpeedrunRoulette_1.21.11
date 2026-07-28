@@ -37,8 +37,9 @@ public class ReminderScreen extends Screen {
         }).bounds(this.width / 2 - buttonWidth / 2, this.height - 40 - buttonHeight - spacing, buttonWidth, buttonHeight).build());
     }
 
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 256) { // ESCAPE
+    @Override
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent keyEvent) {
+        if (keyEvent.key() == 256) { // ESCAPE
             this.onClose();
             return true;
         }

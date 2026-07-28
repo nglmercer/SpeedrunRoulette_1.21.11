@@ -7,7 +7,6 @@ import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -226,6 +225,13 @@ public class SpeedrunState {
 
     public static void onClientTick() {
         Minecraft mc = Minecraft.getInstance();
+
+        if (!objectivesLoaded) {
+            autoOpenDelayTicks++;
+            if (autoOpenDelayTicks >= 20) {
+                objectivesLoaded = true;
+            }
+        }
 
         if (SpeedrunAutoNav.isDisconnectingOrSaving()) {
             if (SpeedrunAutoNav.autoTriggerCreateWorld && SpeedrunAutoNav.canAutoNavigateMenus()

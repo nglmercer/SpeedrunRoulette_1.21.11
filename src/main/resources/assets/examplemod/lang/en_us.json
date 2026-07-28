@@ -126,5 +126,12 @@
   "gui.examplemod.preview_emerald": "Emerald",
   "gui.examplemod.preview_error": "Error Loading Items",
   "gui.examplemod.preview_test_item": "Test Item",
-  "gui.examplemod.list_of_items": "List of %s items"
+  "gui.examplemod.list_of_items": "List of %s items",
+  "gui.examplemod.decrease": "-",
+  "gui.examplemod.increase": "+",
+  "gui.examplemod.enable_all": "✔",
+  "gui.examplemod.disable_all": "✖",
+  "gui.examplemod.unknown": "?",
+  "gui.examplemod.tooltip_newline": "\n",
+  "gui.examplemod.disabled_indicator": "X"
 }

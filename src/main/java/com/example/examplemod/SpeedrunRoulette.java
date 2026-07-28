@@ -270,15 +270,17 @@ public class SpeedrunRoulette {
                                  g.pose().scale(1/1.5f, 1/1.5f);
                                  g.pose().translate(-x, -y);
                                  
-                                 // Hover Area (approx 15x15)
-                                 if (mouseX >= x && mouseX <= x + 15 && mouseY >= y && mouseY <= y + 15) {
-                                     List<Component> tooltip = new java.util.ArrayList<>();
-                                     tooltip.add(Component.literal(info.isVictory ? "Victoire !" : "Echec").withStyle(info.isVictory ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.RED));
-                                     tooltip.add(Component.literal("Temps: " + info.time).withStyle(net.minecraft.ChatFormatting.YELLOW));
-                                     tooltip.add(Component.literal("Objectif: " + info.objective).withStyle(net.minecraft.ChatFormatting.GRAY));
-                                     
-                                     String date = new java.text.SimpleDateFormat("dd/MM HH:mm").format(new java.util.Date(info.timestamp));
-                                     tooltip.add(Component.literal(date).withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+                                  // Hover Area (approx 15x15)
+                                  if (mouseX >= x && mouseX <= x + 15 && mouseY >= y && mouseY <= y + 15) {
+                                      List<Component> tooltip = new java.util.ArrayList<>();
+                                      tooltip.add(info.isVictory
+                                          ? Component.translatable("gui.examplemod.victory_indicator").withStyle(net.minecraft.ChatFormatting.GREEN)
+                                          : Component.translatable("gui.examplemod.defeat_indicator").withStyle(net.minecraft.ChatFormatting.RED));
+                                      tooltip.add(Component.translatable("gui.examplemod.time_label").append(" " + info.time).withStyle(net.minecraft.ChatFormatting.YELLOW));
+                                      tooltip.add(Component.translatable("gui.examplemod.objective_label").append(" " + info.objective).withStyle(net.minecraft.ChatFormatting.GRAY));
+
+                                      String date = new java.text.SimpleDateFormat("dd/MM HH:mm").format(new java.util.Date(info.timestamp));
+                                      tooltip.add(Component.literal(date).withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
                                      
                                      java.util.List<ClientTooltipComponent> components = tooltip.stream()
                                          .map(c -> ClientTooltipComponent.create(c.getVisualOrderText()))

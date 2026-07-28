@@ -32,6 +32,15 @@ public class SpeedrunConfigScreen extends Screen {
 
         y += gap;
         this.addRenderableWidget(Button.builder(
+            Component.translatable("gui.examplemod.config.auto_start", (Config.AUTO_START.get() ? Component.translatable("gui.examplemod.on") : Component.translatable("gui.examplemod.off"))),
+            (btn) -> {
+                Config.AUTO_START.set(!Config.AUTO_START.get());
+                btn.setMessage(Component.translatable("gui.examplemod.config.auto_start", (Config.AUTO_START.get() ? Component.translatable("gui.examplemod.on") : Component.translatable("gui.examplemod.off"))));
+            }
+        ).bounds(x, y, w, h).build());
+
+        y += gap;
+        this.addRenderableWidget(Button.builder(
             Component.translatable("gui.examplemod.config.objective_count", Config.OBJECTIVE_COUNT.get()),
             (btn) -> {
                 int current = Config.OBJECTIVE_COUNT.get();

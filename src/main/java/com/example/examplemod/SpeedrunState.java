@@ -388,13 +388,13 @@ public class SpeedrunState {
                 SpeedrunRoulette.LOGGER.error("Failed to read run info", e);
             }
         } else {
-             Minecraft.getInstance().setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(
+              Minecraft.getInstance().setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(
                 (yes) -> Minecraft.getInstance().setScreen(parent),
-                Component.literal("Infos de la Run"),
-                Component.literal("Aucune information enregistrée pour ce monde."),
-                Component.literal("Fermer"),
+                Component.translatable("gui.examplemod.run_info_title"),
+                Component.translatable("gui.examplemod.no_run_info"),
+                Component.translatable("gui.examplemod.close_button"),
                 Component.literal("")
-            ));
+             ));
         }
     }
 
@@ -650,10 +650,12 @@ public class SpeedrunState {
         
         String timeStr = currentFormattedTime();
         if (manualPaused || systemPaused) {
-             timeStr += " (PAUSE)";
+             timeStr += Component.translatable("gui.examplemod.paused_indicator").getString();
         }
-        
-        String statsStr = "Morts: " + deathCount + " | Distance: " + String.format("%.0fm", traveledMeters) + " | Jours: " + daysPlayed;
+
+        String statsStr = Component.translatable("gui.examplemod.deaths_label").getString() + " " + deathCount + " | " +
+            Component.translatable("gui.examplemod.distance_label").getString() + " " + String.format("%.0fm", traveledMeters) + " | " +
+            Component.translatable("gui.examplemod.days_label").getString() + " " + daysPlayed;
         
         renderObjectivesAndStats(g, font, width, margin, showObjectives, showStats, timeStr, statsStr, objectives, timerRunning, manualPaused || systemPaused);
     }
@@ -666,7 +668,9 @@ public class SpeedrunState {
             
             // Dummy Data
             String timeStr = "00:42.000";
-            String statsStr = "Morts: 5 | Distance: 1234m | Jours: 2";
+            String statsStr = Component.translatable("gui.examplemod.deaths_label").getString() + " 5 | " +
+                Component.translatable("gui.examplemod.distance_label").getString() + " 1234m | " +
+                Component.translatable("gui.examplemod.days_label").getString() + " 2";
             
             // Create dummy objective
             List<Objective> dummyObjectives = new java.util.ArrayList<>();
@@ -694,23 +698,23 @@ public class SpeedrunState {
                 if (emerald == net.minecraft.world.item.Items.AIR) emerald = net.minecraft.world.item.Items.EMERALD;
 
                 if (iron != null && iron != net.minecraft.world.item.Items.AIR) {
-                    dummyObjectives.add(new Objective("preview_item", Component.literal("Iron Ingot"), new net.minecraft.world.item.ItemStack(iron), Objective.Type.ITEM));
+                    dummyObjectives.add(new Objective("preview_item", Component.translatable("gui.examplemod.preview_iron_ingot"), new net.minecraft.world.item.ItemStack(iron), Objective.Type.ITEM));
                 }
                 if (dirt != null && dirt != net.minecraft.world.item.Items.AIR) {
-                    dummyObjectives.add(new Objective("preview_block", Component.literal("Dirt Block"), new net.minecraft.world.item.ItemStack(dirt), Objective.Type.BLOCK));
+                    dummyObjectives.add(new Objective("preview_block", Component.translatable("gui.examplemod.preview_dirt_block"), new net.minecraft.world.item.ItemStack(dirt), Objective.Type.BLOCK));
                 }
                 if (emerald != null && emerald != net.minecraft.world.item.Items.AIR) {
-                    dummyObjectives.add(new Objective("preview_gem", Component.literal("Emerald"), new net.minecraft.world.item.ItemStack(emerald), Objective.Type.ITEM));
+                    dummyObjectives.add(new Objective("preview_gem", Component.translatable("gui.examplemod.preview_emerald"), new net.minecraft.world.item.ItemStack(emerald), Objective.Type.ITEM));
                 }
             } catch (Throwable t) {
                 System.err.println("Preview Items Error: " + t.getMessage());
                 // Fallback if Items access fails
-                dummyObjectives.add(new Objective("preview_error", Component.literal("Error Loading Items"), net.minecraft.world.item.ItemStack.EMPTY, Objective.Type.ITEM));
+                dummyObjectives.add(new Objective("preview_error", Component.translatable("gui.examplemod.preview_error"), net.minecraft.world.item.ItemStack.EMPTY, Objective.Type.ITEM));
             }
-            
+
             // If dummy objectives empty, add fallback
             if (dummyObjectives.isEmpty()) {
-                 dummyObjectives.add(new Objective("preview_fallback", Component.literal("Test Item"), net.minecraft.world.item.ItemStack.EMPTY, Objective.Type.ITEM));
+                 dummyObjectives.add(new Objective("preview_fallback", Component.translatable("gui.examplemod.preview_test_item"), net.minecraft.world.item.ItemStack.EMPTY, Objective.Type.ITEM));
             }
             
             renderObjectivesAndStats(g, font, width, margin, true, true, timeStr, statsStr, dummyObjectives, true, false);
@@ -894,7 +898,7 @@ public class SpeedrunState {
             // Title Scale
              g.pose().translate(textX, currentY);
              g.pose().scale(textScale, textScale);
-             g.drawString(font, "Objectifs:", 0, 0, 0xFFAAAAAA, false);
+              g.drawString(font, Component.translatable("gui.examplemod.objectives_label"), 0, 0, 0xFFAAAAAA, false);
              g.pose().scale(1/textScale, 1/textScale);
              g.pose().translate(-textX, -currentY);
              currentY += (int)(12 * textScale);
@@ -906,7 +910,9 @@ public class SpeedrunState {
                 Component name = obj.getDisplayName();
                 
                 if (compactMode) {
-                    String prefix = completed ? "[v] " : "[ ] ";
+                    String prefix = completed
+                        ? Component.translatable("gui.examplemod.completed_checkbox").getString() + " "
+                        : Component.translatable("gui.examplemod.uncompleted_checkbox").getString() + " ";
                     g.pose().translate(textX, currentY);
                     g.pose().scale(textScale, textScale);
                     g.drawString(font, prefix + name.getString(), 0, 0, color, false);
@@ -966,7 +972,7 @@ public class SpeedrunState {
     public static void onScreenInit(ScreenEvent.Init.Post event) {
         if (event.getScreen() instanceof TitleScreen) {
              // Add button to open ConfigScreen or WheelScreen
-             event.addListener(Button.builder(Component.literal("Speedrun Config"), (btn) -> {
+             event.addListener(Button.builder(Component.translatable("gui.examplemod.speedrun_config_button"), (btn) -> {
                  Minecraft.getInstance().setScreen(new SpeedrunConfigScreen(event.getScreen()));
              }).bounds(10, 10, 100, 20).build());
              

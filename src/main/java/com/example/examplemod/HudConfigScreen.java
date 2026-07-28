@@ -28,7 +28,7 @@ public class HudConfigScreen extends Screen {
         int gap = 24;
 
         // Timer Scale
-        this.addRenderableWidget(Button.builder(Component.literal("-"), (btn) -> {
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.decrease"), (btn) -> {
             adjustDouble(Config.HUD_TIMER_SCALE, -0.1);
         }).bounds(x, y, 20, h).build());
         
@@ -36,35 +36,35 @@ public class HudConfigScreen extends Screen {
             // Reset or cycle? Maybe just display.
         }).bounds(x + 25, y, w - 50, h).build()); 
 
-        this.addRenderableWidget(Button.builder(Component.literal("+"), (btn) -> {
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.increase"), (btn) -> {
             adjustDouble(Config.HUD_TIMER_SCALE, 0.1);
         }).bounds(x + w - 20, y, 20, h).build());
 
         y += gap;
 
         // Item Scale
-        this.addRenderableWidget(Button.builder(Component.literal("-"), (btn) -> {
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.decrease"), (btn) -> {
             adjustDouble(Config.HUD_ITEM_SCALE, -0.1);
         }).bounds(x, y, 20, h).build());
 
         this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.hud_config.item_scale", String.format("%.1f", Config.HUD_ITEM_SCALE.get())), (btn) -> {
         }).bounds(x + 25, y, w - 50, h).build());
 
-        this.addRenderableWidget(Button.builder(Component.literal("+"), (btn) -> {
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.increase"), (btn) -> {
             adjustDouble(Config.HUD_ITEM_SCALE, 0.1);
         }).bounds(x + w - 20, y, 20, h).build());
 
         y += gap;
 
         // Text Scale
-        this.addRenderableWidget(Button.builder(Component.literal("-"), (btn) -> {
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.decrease"), (btn) -> {
             adjustDouble(Config.HUD_TEXT_SCALE, -0.1);
         }).bounds(x, y, 20, h).build());
 
         this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.hud_config.text_scale", String.format("%.1f", Config.HUD_TEXT_SCALE.get())), (btn) -> {
         }).bounds(x + 25, y, w - 50, h).build());
 
-        this.addRenderableWidget(Button.builder(Component.literal("+"), (btn) -> {
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.increase"), (btn) -> {
             adjustDouble(Config.HUD_TEXT_SCALE, 0.1);
         }).bounds(x + w - 20, y, 20, h).build());
 

@@ -298,10 +298,10 @@ public class WheelScreen extends Screen {
              if (hoveredObjective.getDescription() != null && !hoveredObjective.getDescription().getString().isEmpty()) {
                  tooltip.add(hoveredObjective.getDescription());
              } else {
-                 // Default description based on type
-                 if (hoveredObjective.getType() == Objective.Type.ITEM || hoveredObjective.getType() == Objective.Type.BLOCK) {
-                     tooltip.add(Component.literal("Obtain this item"));
-                 }
+              // Default description based on type
+              if (hoveredObjective.getType() == Objective.Type.ITEM || hoveredObjective.getType() == Objective.Type.BLOCK) {
+                  tooltip.add(Component.translatable("gui.examplemod.obtain_item_tooltip"));
+              }
              }
              
              renderCustomTooltip(guiGraphics, tooltip, mouseX, mouseY);

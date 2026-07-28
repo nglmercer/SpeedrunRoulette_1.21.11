@@ -84,12 +84,12 @@ public class PoolCustomizationScreen extends Screen {
         }).bounds(midX + 55, 45, 100, 20).build());
 
         // Enable All Visible Button
-        this.addRenderableWidget(Button.builder(Component.literal("✔"), (btn) -> {
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.enable_all"), (btn) -> {
             setAllVisible(true);
         }).bounds(midX - 52, 45, 50, 20).tooltip(Tooltip.create(Component.translatable("gui.examplemod.pool_config.enable_all"))).build());
 
         // Disable All Visible Button
-        this.addRenderableWidget(Button.builder(Component.literal("✖"), (btn) -> {
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.disable_all"), (btn) -> {
             setAllVisible(false);
         }).bounds(midX + 2, 45, 50, 20).tooltip(Tooltip.create(Component.translatable("gui.examplemod.pool_config.disable_all"))).build());
 
@@ -154,8 +154,8 @@ public class PoolCustomizationScreen extends Screen {
         else if (currentTypeFilter == Objective.Type.ITEM) typeText = Component.translatable("gui.examplemod.pool_config.filter.type.items");
         else if (currentTypeFilter == Objective.Type.BLOCK) typeText = Component.translatable("gui.examplemod.pool_config.filter.type.blocks");
         else if (currentTypeFilter == Objective.Type.ADVANCEMENT) typeText = Component.translatable("gui.examplemod.pool_config.filter.type.advancements");
-        else typeText = Component.literal("?");
-        
+        else typeText = Component.translatable("gui.examplemod.unknown");
+
         return Component.translatable("gui.examplemod.pool_config.filter.type", typeText);
     }
 
@@ -166,7 +166,7 @@ public class PoolCustomizationScreen extends Screen {
             case OVERWORLD: dimText = Component.translatable("gui.examplemod.pool_config.filter.dimension.overworld"); break;
             case NETHER: dimText = Component.translatable("gui.examplemod.pool_config.filter.dimension.nether"); break;
             case END: dimText = Component.translatable("gui.examplemod.pool_config.filter.dimension.end"); break;
-            default: dimText = Component.literal("?");
+            default: dimText = Component.translatable("gui.examplemod.unknown");
         }
         return Component.translatable("gui.examplemod.pool_config.filter.dimension", dimText);
     }
@@ -369,17 +369,17 @@ public class PoolCustomizationScreen extends Screen {
             // Tooltip (Name + Description)
             if (hovered) {
                 if (objective.getDescription() != null && !objective.getDescription().getString().isEmpty()) {
-                     this.setTooltip(Tooltip.create(Component.empty().append(name).append(Component.literal("\n")).append(objective.getDescription())));
+                     this.setTooltip(Tooltip.create(Component.empty().append(name).append(Component.translatable("gui.examplemod.tooltip_newline")).append(objective.getDescription())));
                 } else {
                      this.setTooltip(Tooltip.create(name));
                 }
             } else {
                 this.setTooltip(null);
             }
-            
-            // Status Indicator (X if disabled)
+
+            // Status Indicator (disabled)
             if (isBlacklisted) {
-                guiGraphics.drawCenteredString(font, "X", getX() + width - 10, getY() + 5, 0xFFFF0000);
+                guiGraphics.drawCenteredString(font, Component.translatable("gui.examplemod.disabled_indicator").getString(), getX() + width - 10, getY() + 5, 0xFFFF0000);
             }
         }
 

@@ -126,5 +126,12 @@
   "gui.examplemod.preview_emerald": "Изумруд",
   "gui.examplemod.preview_error": "Ошибка загрузки",
   "gui.examplemod.preview_test_item": "Тестовый предмет",
-  "gui.examplemod.list_of_items": "Список из %s предметов"
+  "gui.examplemod.list_of_items": "Список из %s предметов",
+  "gui.examplemod.decrease": "-",
+  "gui.examplemod.increase": "+",
+  "gui.examplemod.enable_all": "✔",
+  "gui.examplemod.disable_all": "✖",
+  "gui.examplemod.unknown": "?",
+  "gui.examplemod.tooltip_newline": "\n",
+  "gui.examplemod.disabled_indicator": "X"
 }

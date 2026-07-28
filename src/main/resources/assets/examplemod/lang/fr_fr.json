@@ -126,5 +126,12 @@
   "gui.examplemod.preview_emerald": "Emeraude",
   "gui.examplemod.preview_error": "Erreur de chargement",
   "gui.examplemod.preview_test_item": "Item de Test",
-  "gui.examplemod.list_of_items": "Liste de %s items"
+  "gui.examplemod.list_of_items": "Liste de %s items",
+  "gui.examplemod.decrease": "-",
+  "gui.examplemod.increase": "+",
+  "gui.examplemod.enable_all": "✔",
+  "gui.examplemod.disable_all": "✖",
+  "gui.examplemod.unknown": "?",
+  "gui.examplemod.tooltip_newline": "\n",
+  "gui.examplemod.disabled_indicator": "X"
 }

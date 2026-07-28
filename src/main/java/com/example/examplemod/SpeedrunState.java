@@ -25,6 +25,9 @@ public class SpeedrunState {
 
     public static boolean keepObjectivesForNextRun = false;
 
+    private static boolean disconnectScheduled = false;
+    private static String disconnectLabel = "";
+
     /**
      * True while a disconnect is pending or in-progress on the render thread.
      * Set ONLY from the render thread. Cleared when TitleScreen arrives.
@@ -247,100 +250,83 @@ public class SpeedrunState {
      * Sets pending flag + schedules the actual disconnect on this same thread.
      */
     public static void beginRetryAndDisconnect() {
-        if (anyPendingOrTransitioning()) return;
-
+        if (anyPendingOrTransitioning()) {
+            SpeedrunRoulette.LOGGER.warn("[Transition] beginRetryAndDisconnect BLOCKED by pending/transitioning state");
+            return;
+        }
+        SpeedrunRoulette.LOGGER.info("[Transition] beginRetryAndDisconnect START");
         SpeedrunRoulette.pendingReplay = true;
         isTransitioning = true;
-
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level != null) {
-            // Save run info now (we're on render thread, server is still up).
-            trySaveRunInfo(false);
-            // Capture level ID for world deletion if needed later.
-            captureLevelId(mc);
-            mc.disconnect(new TitleScreen(), false);
-        } else {
-            // Already disconnected: handle transition immediately.
-            handleTitleScreenArrival(mc);
-        }
+        doDisconnect("RetrySameSeed");
     }
 
     public static void beginGiveUpAndDisconnect() {
-        if (anyPendingOrTransitioning()) return;
-
+        if (anyPendingOrTransitioning()) {
+            SpeedrunRoulette.LOGGER.warn("[Transition] beginGiveUpAndDisconnect BLOCKED by pending/transitioning state");
+            return;
+        }
+        SpeedrunRoulette.LOGGER.info("[Transition] beginGiveUpAndDisconnect START");
         SpeedrunRoulette.pendingGiveUp = true;
         isTransitioning = true;
-
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level != null) {
-            trySaveRunInfo(false);
-            captureLevelId(mc);
-            mc.disconnect(new TitleScreen(), false);
-        } else {
-            handleTitleScreenArrival(mc);
-        }
+        doDisconnect("GiveUp");
     }
 
     public static void beginRetryNewSeedAndDisconnect() {
-        if (anyPendingOrTransitioning()) return;
-
+        if (anyPendingOrTransitioning()) {
+            SpeedrunRoulette.LOGGER.warn("[Transition] beginRetryNewSeedAndDisconnect BLOCKED by pending/transitioning state");
+            return;
+        }
+        SpeedrunRoulette.LOGGER.info("[Transition] beginRetryNewSeedAndDisconnect START");
         SpeedrunRoulette.pendingRetryNewSeed = true;
         isTransitioning = true;
-
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level != null) {
-            trySaveRunInfo(false);
-            captureLevelId(mc);
-            mc.disconnect(new TitleScreen(), false);
-        } else {
-            handleTitleScreenArrival(mc);
-        }
+        doDisconnect("RetryNewSeed");
     }
 
     public static void beginNewRunAndDisconnect() {
-        if (anyPendingOrTransitioning()) return;
-
+        if (anyPendingOrTransitioning()) {
+            SpeedrunRoulette.LOGGER.warn("[Transition] beginNewRunAndDisconnect BLOCKED by pending/transitioning state");
+            return;
+        }
+        SpeedrunRoulette.LOGGER.info("[Transition] beginNewRunAndDisconnect START");
         SpeedrunRoulette.pendingNewRun = true;
         isTransitioning = true;
-
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level != null) {
-            trySaveRunInfo(false);
-            captureLevelId(mc);
-            mc.disconnect(new TitleScreen(), false);
-        } else {
-            handleTitleScreenArrival(mc);
-        }
+        doDisconnect("NewRun");
     }
 
     public static void beginMainMenuAndDisconnect() {
-        if (anyPendingOrTransitioning()) return;
-
+        if (anyPendingOrTransitioning()) {
+            SpeedrunRoulette.LOGGER.warn("[Transition] beginMainMenuAndDisconnect BLOCKED by pending/transitioning state");
+            return;
+        }
+        SpeedrunRoulette.LOGGER.info("[Transition] beginMainMenuAndDisconnect START");
         SpeedrunRoulette.pendingMainMenu = true;
         isTransitioning = true;
-
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level != null) {
-            trySaveRunInfo(false);
-            captureLevelId(mc);
-            mc.disconnect(new TitleScreen(), false);
-        } else {
-            handleTitleScreenArrival(mc);
-        }
+        doDisconnect("MainMenu");
     }
 
     public static void beginResetAndDisconnect() {
-        if (anyPendingOrTransitioning()) return;
-
+        if (anyPendingOrTransitioning()) {
+            SpeedrunRoulette.LOGGER.warn("[Transition] beginResetAndDisconnect BLOCKED by pending/transitioning state");
+            return;
+        }
+        SpeedrunRoulette.LOGGER.info("[Transition] beginResetAndDisconnect START");
         SpeedrunRoulette.pendingReset = true;
         isTransitioning = true;
+        doDisconnect("Reset");
+    }
 
+    private static void doDisconnect(String label) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level != null) {
+            SpeedrunRoulette.LOGGER.info("[Transition][{}] Saving run info...", label);
             trySaveRunInfo(false);
+            SpeedrunRoulette.LOGGER.info("[Transition][{}] Capturing level ID...", label);
             captureLevelId(mc);
-            mc.disconnect(new TitleScreen(), false);
+            SpeedrunRoulette.LOGGER.info("[Transition][{}] Scheduling disconnect for next tick", label);
+            disconnectScheduled = true;
+            disconnectLabel = label;
         } else {
+            SpeedrunRoulette.LOGGER.info("[Transition][{}] No active world, handling TitleScreen arrival directly", label);
             handleTitleScreenArrival(mc);
         }
     }
@@ -411,6 +397,10 @@ public class SpeedrunState {
             SpeedrunAutoNav.resetProgress();
         }
 
+        SpeedrunRoulette.LOGGER.info("[Transition] handleTitleScreenArrival DONE: autoCreate={}, autoReEnter={}, targetLevel={}, screen={}",
+            SpeedrunAutoNav.autoTriggerCreateWorld, SpeedrunAutoNav.autoReEnterWorld,
+            SpeedrunAutoNav.targetLevelId, mc.screen != null ? mc.screen.getClass().getSimpleName() : "null");
+
         if (!(mc.screen instanceof TitleScreen)) {
             mc.setScreen(new TitleScreen());
         }
@@ -460,16 +450,21 @@ public class SpeedrunState {
         }
 
         boolean hasObjs = !objectives.isEmpty();
+        SpeedrunRoulette.LOGGER.info("[AutoOpen] objectivesLoaded={}, hasObjs={}, keepForNext={}, fresh={}",
+            objectivesLoaded, hasObjs, keepObjectivesForNextRun, objectivesFresh);
 
         if (!keepObjectivesForNextRun && hasObjs && !objectivesFresh) {
+            SpeedrunRoulette.LOGGER.info("[AutoOpen] Clearing stale objectives");
             clearObjectives();
             hasObjs = false;
         }
 
         if (!hasObjs) {
+            SpeedrunRoulette.LOGGER.info("[AutoOpen] No objectives -> opening wheel");
             openWheelNow();
         } else {
             if (keepObjectivesForNextRun && objectivesFresh) {
+                SpeedrunRoulette.LOGGER.info("[AutoOpen] Saving kept objectives to world");
                 saveObjectivesToWorld();
                 objectivesFresh = false;
             }
@@ -483,6 +478,30 @@ public class SpeedrunState {
 
     public static void onClientTick() {
         Minecraft mc = Minecraft.getInstance();
+
+        if (disconnectScheduled) {
+            disconnectScheduled = false;
+            SpeedrunRoulette.LOGGER.info("[Transition][{}] Executing deferred mc.disconnect()", disconnectLabel);
+            mc.disconnect(new TitleScreen(), false);
+            SpeedrunRoulette.LOGGER.info("[Transition][{}] mc.disconnect() returned", disconnectLabel);
+            return;
+        }
+
+        String cmd = SpeedrunRoulette.pendingCommand;
+        if (cmd != null) {
+            SpeedrunRoulette.pendingCommand = null;
+            SpeedrunRoulette.LOGGER.info("[Command] Processing pending command: {}", cmd);
+            switch (cmd) {
+                case "new" -> beginNewRunAndDisconnect();
+                case "retry" -> beginRetryAndDisconnect();
+                case "retrynewseed" -> beginRetryNewSeedAndDisconnect();
+                case "giveup" -> beginGiveUpAndDisconnect();
+                case "mainmenu" -> beginMainMenuAndDisconnect();
+                case "reset" -> beginResetAndDisconnect();
+                default -> SpeedrunRoulette.LOGGER.warn("[Command] Unknown pending command: {}", cmd);
+            }
+            return;
+        }
 
         if (!objectivesLoaded) {
             autoOpenDelayTicks++;

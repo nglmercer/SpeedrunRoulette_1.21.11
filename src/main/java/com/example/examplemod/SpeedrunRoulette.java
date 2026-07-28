@@ -25,6 +25,8 @@ public class SpeedrunRoulette implements ModInitializer {
     public static volatile boolean pendingReset = false;
     public static volatile boolean pendingMainMenu = false;
 
+    public static volatile String pendingCommand = null;
+
     // Auto-open wheel state
     public static boolean hasCheckedAutoOpen = false;
 

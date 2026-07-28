@@ -136,11 +136,10 @@ public class SpeedrunState {
         boolean localWin = payload.isLocalPlayerWinner(mc.player.getUUID());
         boolean coop = payload.gameMode == SpeedrunGameMode.COOPERATIVE;
 
-        mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
-                coop || localWin
-                        ? net.minecraft.sounds.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE
-                        : net.minecraft.sounds.SoundEvents.RAID_HORN,
-                1.0F));
+        net.minecraft.core.Holder<net.minecraft.sounds.SoundEvent> winSound = coop || localWin
+                ? net.minecraft.core.Holder.direct(net.minecraft.sounds.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE)
+                : net.minecraft.sounds.SoundEvents.RAID_HORN;
+        mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(winSound, 1.0F));
 
         if (coop || localWin) {
             if (!(mc.screen instanceof VictoryScreen)) {

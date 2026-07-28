@@ -66,15 +66,12 @@ public class SpeedrunWorldData extends SavedData {
         return data;
     }
 
-    // Removed @Override just in case signature mismatches
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
-        /*
         ListTag list = new ListTag();
         for (Objective obj : objectives) {
             list.add(obj.save(provider));
         }
         tag.put("objectives", list);
-        */
         return tag;
     }
     

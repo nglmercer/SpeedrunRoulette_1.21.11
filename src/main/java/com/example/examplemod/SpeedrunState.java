@@ -53,14 +53,18 @@ public class SpeedrunState {
     public static boolean isTransitioning = false;
 
     public static void prepareForRetry() {
+        keepObjectivesForNextRun = true;
         isTransitioning = true;
         resetTimer();
+        objectivesFresh = true;
     }
 
     public static void prepareForNewGame() {
         keepObjectivesForNextRun = false;
         isTransitioning = true;
+        clearObjectives();
         resetTimer();
+        objectivesFresh = false;
     }
 
     public static void finishTransition() {

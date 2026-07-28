@@ -188,6 +188,11 @@ public class SpeedrunRoulette {
                 }
 
                 if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay) {
+                    // Trigger auto-navigation to create world screen
+                    if (SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingGiveUp) {
+                        SpeedrunState.autoTriggerCreateWorld = true;
+                    }
+
                     SpeedrunRoulette.pendingGiveUp = false;
                     SpeedrunRoulette.pendingNewRun = false;
                     SpeedrunRoulette.pendingReplay = false;

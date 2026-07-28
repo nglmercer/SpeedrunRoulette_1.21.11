@@ -123,5 +123,11 @@
   "gui.examplemod.tooltip_newline": "\n",
   "gui.examplemod.disabled_indicator": "X",
   "gui.examplemod.config.language": "Mod Language: %s",
-  "gui.examplemod.config.language_default": "Default"
+  "gui.examplemod.config.language_default": "Default",
+  "gui.examplemod.cmd_new_run": "Starting new run...",
+  "gui.examplemod.cmd_retry": "Retrying with same objectives...",
+  "gui.examplemod.cmd_give_up": "Giving up current run...",
+  "gui.examplemod.cmd_reset_world": "Resetting world...",
+  "gui.examplemod.cmd_status": "Time: %s - Status: %s",
+  "gui.examplemod.cmd_no_objectives": "No active objectives. Use /speedrun wheel to start!"
 }

@@ -10,6 +10,10 @@ import net.minecraft.network.chat.Component;
 public class SpeedrunConfigScreen extends Screen {
     private final Screen parent;
     private static final String[] LANGUAGES = {"", "en_us", "de_de", "es_es", "fr_fr", "it_it", "pt_br", "ru_ru", "zh_cn"};
+    private Button objectiveCountLabel;
+    private Button autoOpenLabel;
+    private Button autoStartLabel;
+    private Button languageLabel;
 
     public SpeedrunConfigScreen(Screen parent) {
         super(Component.translatable("gui.examplemod.config.title"));
@@ -24,7 +28,8 @@ public class SpeedrunConfigScreen extends Screen {
         int h = 20;
         int gap = 24;
 
-        this.addRenderableWidget(Button.builder(
+        // Auto Open Wheel toggle
+        autoOpenLabel = this.addRenderableWidget(Button.builder(
             Component.translatable("gui.examplemod.config.auto_open", (Config.AUTO_OPEN_WHEEL.get() ? Component.translatable("gui.examplemod.on") : Component.translatable("gui.examplemod.off"))),
             (btn) -> {
                 Config.AUTO_OPEN_WHEEL.set(!Config.AUTO_OPEN_WHEEL.get());
@@ -33,7 +38,8 @@ public class SpeedrunConfigScreen extends Screen {
         ).bounds(x, y, w, h).build());
 
         y += gap;
-        this.addRenderableWidget(Button.builder(
+        // Auto Start Timer toggle
+        autoStartLabel = this.addRenderableWidget(Button.builder(
             Component.translatable("gui.examplemod.config.auto_start", (Config.AUTO_START.get() ? Component.translatable("gui.examplemod.on") : Component.translatable("gui.examplemod.off"))),
             (btn) -> {
                 Config.AUTO_START.set(!Config.AUTO_START.get());
@@ -42,7 +48,19 @@ public class SpeedrunConfigScreen extends Screen {
         ).bounds(x, y, w, h).build());
 
         y += gap;
+        // Objective Count with selector arrows
         this.addRenderableWidget(Button.builder(
+            Component.literal("-"),
+            (btn) -> {
+                int current = Config.OBJECTIVE_COUNT.get();
+                if (current > 1) {
+                    Config.OBJECTIVE_COUNT.set(current - 1);
+                    updateCountLabel();
+                }
+            }
+        ).bounds(x, y, 20, h).build());
+
+        objectiveCountLabel = this.addRenderableWidget(Button.builder(
             Component.translatable("gui.examplemod.config.objective_count", Config.OBJECTIVE_COUNT.get()),
             (btn) -> {
                 int current = Config.OBJECTIVE_COUNT.get();
@@ -51,7 +69,18 @@ public class SpeedrunConfigScreen extends Screen {
                 Config.OBJECTIVE_COUNT.set(next);
                 btn.setMessage(Component.translatable("gui.examplemod.config.objective_count", next));
             }
-        ).bounds(x, y, w, h).build());
+        ).bounds(x + 25, y, w - 50, h).build());
+
+        this.addRenderableWidget(Button.builder(
+            Component.literal("+"),
+            (btn) -> {
+                int current = Config.OBJECTIVE_COUNT.get();
+                if (current < 10) {
+                    Config.OBJECTIVE_COUNT.set(current + 1);
+                    updateCountLabel();
+                }
+            }
+        ).bounds(x + w - 20, y, 20, h).build());
 
         y += gap;
         this.addRenderableWidget(Button.builder(
@@ -70,24 +99,51 @@ public class SpeedrunConfigScreen extends Screen {
         ).bounds(x, y, w, h).build());
 
         y += gap;
+        // Language selector with arrows
         this.addRenderableWidget(Button.builder(
+            Component.literal("<"),
+            (btn) -> {
+                cycleLanguage(-1);
+            }
+        ).bounds(x, y, 20, h).build());
+
+        languageLabel = this.addRenderableWidget(Button.builder(
             Component.translatable("gui.examplemod.config.language", getLanguageDisplayName()),
             (btn) -> {
-                String current = Config.FORCED_LANGUAGE.get();
-                int idx = 0;
-                for (int i = 0; i < LANGUAGES.length; i++) {
-                    if (LANGUAGES[i].equals(current)) { idx = i; break; }
-                }
-                int next = (idx + 1) % LANGUAGES.length;
-                Config.FORCED_LANGUAGE.set(LANGUAGES[next]);
-                btn.setMessage(Component.translatable("gui.examplemod.config.language", getLanguageDisplayName()));
-                applyForcedLanguage();
+                cycleLanguage(1);
             }
-        ).bounds(x, y, w, h).build());
+        ).bounds(x + 25, y, w - 50, h).build());
+
+        this.addRenderableWidget(Button.builder(
+            Component.literal(">"),
+            (btn) -> {
+                cycleLanguage(1);
+            }
+        ).bounds(x + w - 20, y, 20, h).build());
 
         this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, (btn) -> {
             this.minecraft.setScreen(this.parent);
         }).bounds(this.width / 2 - 100, this.height - 40, 200, 20).build());
+    }
+
+    private void updateCountLabel() {
+        if (objectiveCountLabel != null) {
+            objectiveCountLabel.setMessage(Component.translatable("gui.examplemod.config.objective_count", Config.OBJECTIVE_COUNT.get()));
+        }
+    }
+
+    private void cycleLanguage(int direction) {
+        String current = Config.FORCED_LANGUAGE.get();
+        int idx = 0;
+        for (int i = 0; i < LANGUAGES.length; i++) {
+            if (LANGUAGES[i].equals(current)) { idx = i; break; }
+        }
+        int next = (idx + direction + LANGUAGES.length) % LANGUAGES.length;
+        Config.FORCED_LANGUAGE.set(LANGUAGES[next]);
+        if (languageLabel != null) {
+            languageLabel.setMessage(Component.translatable("gui.examplemod.config.language", getLanguageDisplayName()));
+        }
+        applyForcedLanguage();
     }
 
     private String getLanguageDisplayName() {

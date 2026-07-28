@@ -49,11 +49,6 @@ public class PoolCustomizationScreen extends Screen {
         this.enableAdvancements = enableAdvancements;
         this.currentBlacklist = new ArrayList<>(Config.BLACKLIST.get());
         this.allObjectives = ObjectivePoolHelper.getAllCandidates(true, enableItems, enableBlocks, enableAdvancements);
-        
-        System.out.println("DEBUG: GuiEventListener methods:");
-        for (java.lang.reflect.Method m : GuiEventListener.class.getMethods()) {
-             System.out.println(m.getName() + " " + java.util.Arrays.toString(m.getParameterTypes()));
-        }
     }
 
     @Override

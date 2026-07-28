@@ -116,8 +116,8 @@ public class PoolCustomizationScreen extends Screen {
     public boolean handleMouseClick(double mouseX, double mouseY, int button) {
         // Manual hit test for widgets in the list
         if (this.objectiveList != null) {
-            int listTop = objectiveList.getTop();
-            int listBottom = objectiveList.getBottom();
+            int listTop = objectiveList.getViewportTop();
+            int listBottom = objectiveList.getViewportBottom();
             int rowWidth = objectiveList.getRowWidth();
             int cols = 3;
             int gap = 10;
@@ -263,8 +263,21 @@ public class PoolCustomizationScreen extends Screen {
     // --- Inner Classes ---
 
     class ObjectiveList extends ContainerObjectSelectionList<ObjectiveList.ObjectiveRowEntry> {
+        private final int viewportTop;
+        private final int viewportBottom;
+
         public ObjectiveList(Minecraft mc, int width, int height, int top, int itemHeight) {
             super(mc, width, height, top, itemHeight);
+            this.viewportTop = top;
+            this.viewportBottom = top + height;
+        }
+
+        public int getViewportTop() {
+            return viewportTop;
+        }
+
+        public int getViewportBottom() {
+            return viewportBottom;
         }
 
         @Override

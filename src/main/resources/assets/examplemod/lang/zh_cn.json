@@ -6,11 +6,9 @@
   "key.categories.examplemod": "速通轮盘",
   "key.category.examplemod.speedrun_roulette": "速通轮盘",
   "itemGroup.examplemod": "速通模组",
-
   "gui.examplemod.spin_the_wheel": "旋转轮盘",
   "gui.examplemod.lets_go": "开始！",
   "gui.examplemod.selected_objectives": "已选目标！",
-  
   "gui.examplemod.victory": "胜利",
   "gui.examplemod.play_again": "再玩一次（相同目标）",
   "gui.examplemod.new_run": "新的一局（新目标）",
@@ -24,22 +22,18 @@
   "gui.examplemod.distance": "距离：%sm",
   "gui.examplemod.days": "天数：%s",
   "gui.examplemod.splits": "分段计时",
-  
   "gui.examplemod.objectives_reminder": "目标提醒",
   "gui.examplemod.close": "关闭",
   "gui.examplemod.give_up": "放弃（新目标）",
   "gui.examplemod.list_prefix": "列表 %s 物品",
   "gui.examplemod.failed_suffix": " 失败",
-  
   "gui.examplemod.default_speedrun_name": "速通",
-  
   "gui.examplemod.config.title": "速通配置",
   "gui.examplemod.config.auto_open": "自动打开轮盘：%s",
   "gui.examplemod.config.auto_start": "自动启动计时器：%s",
   "gui.examplemod.config.objective_count": "目标数量：%s",
   "gui.examplemod.config.pool_config": "配置目标池...",
   "gui.examplemod.config.hud_config": "配置 HUD...",
-  
   "gui.examplemod.pool_config.title": "池配置",
   "gui.examplemod.pool_config.items": "物品：%s",
   "gui.examplemod.pool_config.blocks": "方块：%s",
@@ -61,9 +55,7 @@
   "gui.examplemod.pool_config.filter.dimension.overworld": "主世界",
   "gui.examplemod.pool_config.filter.dimension.nether": "下界",
   "gui.examplemod.pool_config.filter.dimension.end": "末地",
-  
   "gui.examplemod.done": "完成",
-  
   "gui.examplemod.hud_config.title": "HUD 配置",
   "gui.examplemod.hud_config.timer_scale": "计时器缩放：%s",
   "gui.examplemod.hud_config.item_scale": "物品缩放：%s",
@@ -75,13 +67,11 @@
   "gui.examplemod.hud_config.custom_color.off": "自定义颜色：关（动态）",
   "gui.examplemod.hud_config.preview": "预览：",
   "gui.examplemod.hud_config.preview_objective": "目标：示例",
-
   "gui.examplemod.yes": "是",
   "gui.examplemod.no": "否",
   "gui.examplemod.on": "开",
   "gui.examplemod.off": "关",
   "gui.examplemod.objectives_active": "速通：目标已激活！",
-  
   "gui.examplemod.split.nether_entry": "进入下界",
   "gui.examplemod.split.end_entry": "进入末地",
   "gui.examplemod.split.village_found": "发现村庄",
@@ -101,9 +91,7 @@
   "gui.examplemod.split.woodland_mansion": "林地府邸",
   "gui.examplemod.split.nether_fossil": "下界化石",
   "gui.examplemod.split.trial_chamber": "试炼密室",
-  
   "gui.examplemod.level_rename.failure": " 失败",
-
   "gui.examplemod.victory_indicator": "胜利！",
   "gui.examplemod.defeat_indicator": "失败",
   "gui.examplemod.time_label": "时间：",

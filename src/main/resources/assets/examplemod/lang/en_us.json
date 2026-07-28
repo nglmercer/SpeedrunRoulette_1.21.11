@@ -6,11 +6,9 @@
   "key.categories.examplemod": "Speedrun Roulette",
   "key.category.examplemod.speedrun_roulette": "Speedrun Roulette",
   "itemGroup.examplemod": "Speedrun Mod",
-
   "gui.examplemod.spin_the_wheel": "Spin the Wheel",
   "gui.examplemod.lets_go": "Let's Go!",
   "gui.examplemod.selected_objectives": "Selected Objectives!",
-  
   "gui.examplemod.victory": "Victory",
   "gui.examplemod.play_again": "Play Again (Same Objective)",
   "gui.examplemod.new_run": "New Run (New Objectives)",
@@ -24,22 +22,18 @@
   "gui.examplemod.distance": "Distance: %sm",
   "gui.examplemod.days": "Days: %s",
   "gui.examplemod.splits": "Splits",
-  
   "gui.examplemod.objectives_reminder": "Objectives Reminder",
   "gui.examplemod.close": "Close",
   "gui.examplemod.give_up": "Give Up (New Objective)",
   "gui.examplemod.list_prefix": "List %s items",
   "gui.examplemod.failed_suffix": " Failed",
-  
   "gui.examplemod.default_speedrun_name": "Speedrun",
-  
   "gui.examplemod.config.title": "Speedrun Config",
   "gui.examplemod.config.auto_open": "Auto Open Wheel: %s",
   "gui.examplemod.config.auto_start": "Auto Start Timer: %s",
   "gui.examplemod.config.objective_count": "Objective Count: %s",
   "gui.examplemod.config.pool_config": "Configure Objectives Pool...",
   "gui.examplemod.config.hud_config": "Configure HUD...",
-  
   "gui.examplemod.pool_config.title": "Pool Configuration",
   "gui.examplemod.pool_config.items": "Items: %s",
   "gui.examplemod.pool_config.blocks": "Blocks: %s",
@@ -61,9 +55,7 @@
   "gui.examplemod.pool_config.filter.dimension.overworld": "Overworld",
   "gui.examplemod.pool_config.filter.dimension.nether": "Nether",
   "gui.examplemod.pool_config.filter.dimension.end": "End",
-  
   "gui.examplemod.done": "Done",
-  
   "gui.examplemod.hud_config.title": "HUD Configuration",
   "gui.examplemod.hud_config.timer_scale": "Timer Scale: %s",
   "gui.examplemod.hud_config.item_scale": "Item Scale: %s",
@@ -75,13 +67,11 @@
   "gui.examplemod.hud_config.custom_color.off": "Custom Color: OFF (Dynamic)",
   "gui.examplemod.hud_config.preview": "Preview:",
   "gui.examplemod.hud_config.preview_objective": "Objective: Example",
-
   "gui.examplemod.yes": "YES",
   "gui.examplemod.no": "NO",
   "gui.examplemod.on": "ON",
   "gui.examplemod.off": "OFF",
   "gui.examplemod.objectives_active": "Speedrun: Objectives active!",
-  
   "gui.examplemod.split.nether_entry": "Nether Entry",
   "gui.examplemod.split.end_entry": "End Entry",
   "gui.examplemod.split.village_found": "Village Found",
@@ -101,9 +91,7 @@
   "gui.examplemod.split.woodland_mansion": "Woodland Mansion",
   "gui.examplemod.split.nether_fossil": "Nether Fossil",
   "gui.examplemod.split.trial_chamber": "Trial Chamber",
-  
   "gui.examplemod.level_rename.failure": " Failed",
-
   "gui.examplemod.victory_indicator": "Victory!",
   "gui.examplemod.defeat_indicator": "Failure",
   "gui.examplemod.time_label": "Time:",
@@ -133,5 +121,7 @@
   "gui.examplemod.disable_all": "✖",
   "gui.examplemod.unknown": "?",
   "gui.examplemod.tooltip_newline": "\n",
-  "gui.examplemod.disabled_indicator": "X"
+  "gui.examplemod.disabled_indicator": "X",
+  "gui.examplemod.config.language": "Mod Language: %s",
+  "gui.examplemod.config.language_default": "Default"
 }

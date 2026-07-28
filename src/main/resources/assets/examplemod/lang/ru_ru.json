@@ -6,11 +6,9 @@
   "key.categories.examplemod": "Спидран Рулетка",
   "key.category.examplemod.speedrun_roulette": "Спидран Рулетка",
   "itemGroup.examplemod": "Спидран Мод",
-
   "gui.examplemod.spin_the_wheel": "Крутить колесо",
   "gui.examplemod.lets_go": "Погнали!",
   "gui.examplemod.selected_objectives": "Выбранные цели!",
-  
   "gui.examplemod.victory": "Победа",
   "gui.examplemod.play_again": "Играть снова (Та же цель)",
   "gui.examplemod.new_run": "Новый забег (Новые цели)",
@@ -24,22 +22,18 @@
   "gui.examplemod.distance": "Дистанция: %sm",
   "gui.examplemod.days": "Дней: %s",
   "gui.examplemod.splits": "Сплиты",
-  
   "gui.examplemod.objectives_reminder": "Напоминание целей",
   "gui.examplemod.close": "Закрыть",
   "gui.examplemod.give_up": "Сдаться (Новая цель)",
   "gui.examplemod.list_prefix": "Список %s предметов",
   "gui.examplemod.failed_suffix": " Провалено",
-  
   "gui.examplemod.default_speedrun_name": "Спидран",
-  
   "gui.examplemod.config.title": "Настройки Спидрана",
   "gui.examplemod.config.auto_open": "Авто-открытие колеса: %s",
   "gui.examplemod.config.auto_start": "Авто-старт таймера: %s",
   "gui.examplemod.config.objective_count": "Количество целей: %s",
   "gui.examplemod.config.pool_config": "Настроить пулл целей...",
   "gui.examplemod.config.hud_config": "Настроить HUD...",
-  
   "gui.examplemod.pool_config.title": "Настройка пулла",
   "gui.examplemod.pool_config.items": "Предметы: %s",
   "gui.examplemod.pool_config.blocks": "Блоки: %s",
@@ -61,9 +55,7 @@
   "gui.examplemod.pool_config.filter.dimension.overworld": "Верхний мир",
   "gui.examplemod.pool_config.filter.dimension.nether": "Незер",
   "gui.examplemod.pool_config.filter.dimension.end": "Энд",
-  
   "gui.examplemod.done": "Готово",
-  
   "gui.examplemod.hud_config.title": "Настройка HUD",
   "gui.examplemod.hud_config.timer_scale": "Масштаб таймера: %s",
   "gui.examplemod.hud_config.item_scale": "Масштаб предметов: %s",
@@ -75,13 +67,11 @@
   "gui.examplemod.hud_config.custom_color.off": "Свой цвет: ВЫКЛ (Динам.)",
   "gui.examplemod.hud_config.preview": "Предпросмотр:",
   "gui.examplemod.hud_config.preview_objective": "Цель: Пример",
-
   "gui.examplemod.yes": "ДА",
   "gui.examplemod.no": "НЕТ",
   "gui.examplemod.on": "ВКЛ",
   "gui.examplemod.off": "ВЫКЛ",
   "gui.examplemod.objectives_active": "Спидран: Цели активны!",
-  
   "gui.examplemod.split.nether_entry": "Вход в Незер",
   "gui.examplemod.split.end_entry": "Вход в Энд",
   "gui.examplemod.split.village_found": "Деревня найдена",
@@ -101,9 +91,7 @@
   "gui.examplemod.split.woodland_mansion": "Лесной особняк",
   "gui.examplemod.split.nether_fossil": "Останки в Незере",
   "gui.examplemod.split.trial_chamber": "Дворец испытаний",
-  
   "gui.examplemod.level_rename.failure": " Провалено",
-
   "gui.examplemod.victory_indicator": "Победа!",
   "gui.examplemod.defeat_indicator": "Провал",
   "gui.examplemod.time_label": "Время:",

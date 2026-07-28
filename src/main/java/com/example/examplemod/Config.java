@@ -20,6 +20,7 @@ public class Config {
     public static final ModConfigSpec.BooleanValue ENABLE_ADVANCEMENTS;
     public static final ModConfigSpec.ConfigValue<String> POOL_FILTER;
     public static final ModConfigSpec.ConfigValue<List<? extends String>> BLACKLIST;
+    public static final ModConfigSpec.ConfigValue<String> FORCED_LANGUAGE;
     
     // HUD Configs
     public static final ModConfigSpec.DoubleValue HUD_TIMER_SCALE;
@@ -68,7 +69,10 @@ public class Config {
 
         BLACKLIST = BUILDER.comment("List of disabled objective IDs")
                 .defineListAllowEmpty("blacklist", List.of(), s -> s instanceof String);
-                
+
+        FORCED_LANGUAGE = BUILDER.comment("Force mod language (e.g. en_us, es_es, fr_fr). Empty = use Minecraft default.")
+                .define("forcedLanguage", "");
+
         BUILDER.push("HUD Configuration");
         
         HUD_TIMER_SCALE = BUILDER.comment("Scale of the timer text")

@@ -7,6 +7,7 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.minecraft.stats.Stats;
@@ -49,17 +50,21 @@ public class SpeedrunState {
 
     public static boolean autoTriggerCreateWorld = false;
     public static boolean keepObjectivesForNextRun = false;
+    public static boolean isTransitioning = false;
 
     public static void prepareForRetry() {
-        // keepObjectivesForNextRun = true;
-        // autoTriggerCreateWorld = true;
+        isTransitioning = true;
         resetTimer();
     }
 
     public static void prepareForNewGame() {
         keepObjectivesForNextRun = false;
-        // autoTriggerCreateWorld = true;
+        isTransitioning = true;
         resetTimer();
+    }
+
+    public static void finishTransition() {
+        isTransitioning = false;
     }
 
     // Splits
@@ -363,12 +368,12 @@ public class SpeedrunState {
                 long timestamp = tag.getLong("timestamp").orElse(0L);
                 String date = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(new java.util.Date(timestamp));
                 
-                Component titleComp = isVictory
+                MutableComponent titleComp = isVictory
                     ? Component.translatable("gui.examplemod.victory_indicator")
                     : Component.translatable("gui.examplemod.defeat_indicator");
                 int color = isVictory ? 0xFF55FF55 : 0xFFFF5555;
 
-                Component msg = titleComp.withStyle(style -> style.withColor(color).withBold(true))
+                MutableComponent msg = titleComp.withStyle(style -> style.withColor(color).withBold(true))
                     .append("\n\n")
                     .append(Component.translatable("gui.examplemod.objective_label").append(" " + objName).withStyle(net.minecraft.ChatFormatting.WHITE))
                     .append("\n")

@@ -6,11 +6,9 @@
   "key.categories.examplemod": "Speedrun Roulette",
   "key.category.examplemod.speedrun_roulette": "Speedrun Roulette",
   "itemGroup.examplemod": "Mod Speedrun",
-
   "gui.examplemod.spin_the_wheel": "Gira la Ruota",
   "gui.examplemod.lets_go": "Andiamo!",
   "gui.examplemod.selected_objectives": "Obiettivi Selezionati!",
-  
   "gui.examplemod.victory": "Vittoria",
   "gui.examplemod.play_again": "Gioca Ancora (Stesso Obiettivo)",
   "gui.examplemod.new_run": "Nuova Run (Nuovi Obiettivi)",
@@ -24,22 +22,18 @@
   "gui.examplemod.distance": "Distanza: %sm",
   "gui.examplemod.days": "Giorni: %s",
   "gui.examplemod.splits": "Splits",
-  
   "gui.examplemod.objectives_reminder": "Promemoria Obiettivi",
   "gui.examplemod.close": "Chiudi",
   "gui.examplemod.give_up": "Arrenditi (Nuovo Obiettivo)",
   "gui.examplemod.list_prefix": "Lista %s oggetti",
   "gui.examplemod.failed_suffix": " Fallito",
-  
   "gui.examplemod.default_speedrun_name": "Speedrun",
-  
   "gui.examplemod.config.title": "Configurazione Speedrun",
   "gui.examplemod.config.auto_open": "Apri Ruota Auto: %s",
   "gui.examplemod.config.auto_start": "Avvio Auto Timer: %s",
   "gui.examplemod.config.objective_count": "Numero Obiettivi: %s",
   "gui.examplemod.config.pool_config": "Configura Pool Obiettivi...",
   "gui.examplemod.config.hud_config": "Configura HUD...",
-  
   "gui.examplemod.pool_config.title": "Configurazione Pool",
   "gui.examplemod.pool_config.items": "Oggetti: %s",
   "gui.examplemod.pool_config.blocks": "Blocchi: %s",
@@ -61,9 +55,7 @@
   "gui.examplemod.pool_config.filter.dimension.overworld": "Overworld",
   "gui.examplemod.pool_config.filter.dimension.nether": "Nether",
   "gui.examplemod.pool_config.filter.dimension.end": "End",
-  
   "gui.examplemod.done": "Fatto",
-  
   "gui.examplemod.hud_config.title": "Configurazione HUD",
   "gui.examplemod.hud_config.timer_scale": "Scala Timer: %s",
   "gui.examplemod.hud_config.item_scale": "Scala Oggetto: %s",
@@ -75,13 +67,11 @@
   "gui.examplemod.hud_config.custom_color.off": "Colore Pers.: OFF (Dinamico)",
   "gui.examplemod.hud_config.preview": "Anteprima:",
   "gui.examplemod.hud_config.preview_objective": "Obiettivo: Esempio",
-
   "gui.examplemod.yes": "SÌ",
   "gui.examplemod.no": "NO",
   "gui.examplemod.on": "ON",
   "gui.examplemod.off": "OFF",
   "gui.examplemod.objectives_active": "Speedrun: Obiettivi attivi!",
-  
   "gui.examplemod.split.nether_entry": "Ingresso Nether",
   "gui.examplemod.split.end_entry": "Ingresso End",
   "gui.examplemod.split.village_found": "Villaggio Trovato",
@@ -101,9 +91,7 @@
   "gui.examplemod.split.woodland_mansion": "Magione",
   "gui.examplemod.split.nether_fossil": "Fossile del Nether",
   "gui.examplemod.split.trial_chamber": "Camera delle Prove",
-  
   "gui.examplemod.level_rename.failure": " Fallito",
-
   "gui.examplemod.victory_indicator": "Vittoria!",
   "gui.examplemod.defeat_indicator": "Fallito",
   "gui.examplemod.time_label": "Tempo:",

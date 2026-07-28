@@ -31,8 +31,16 @@ public class SpeedrunHud {
             Component.translatable("gui.examplemod.distance_label").getString() + " " + String.format("%.0fm", SpeedrunTimer.getTraveledMeters()) + " | " +
             Component.translatable("gui.examplemod.days_label").getString() + " " + SpeedrunTimer.getDaysPlayed();
 
+        Minecraft mc = Minecraft.getInstance();
+        double rawMouseX = mc.mouseHandler.xpos();
+        double rawMouseY = mc.mouseHandler.ypos();
+        float guiScale = (float) mc.getWindow().getGuiScale();
+        int mouseX = (int) (rawMouseX / guiScale);
+        int mouseY = (int) (rawMouseY / guiScale);
+
         renderHud(g, font, screenWidth, screenHeight, margin, showObjectives, showStats,
-            timeStr, statsStr, SpeedrunState.getObjectives(), SpeedrunTimer.isRunning(), SpeedrunTimer.isPaused());
+            timeStr, statsStr, SpeedrunState.getObjectives(), SpeedrunTimer.isRunning(), SpeedrunTimer.isPaused(),
+            mouseX, mouseY);
     }
 
     public static void renderPreviewHud(GuiGraphics g, int width, int margin) {
@@ -57,7 +65,7 @@ public class SpeedrunHud {
                 dummyObjectives.add(new Objective("preview_error", Component.translatable("gui.examplemod.preview_error"), net.minecraft.world.item.ItemStack.EMPTY, Objective.Type.ITEM));
             }
 
-            renderHud(g, font, width, 300, margin, showObj, showStats, timeStr, statsStr, dummyObjectives, true, false);
+            renderHud(g, font, width, 300, margin, showObj, showStats, timeStr, statsStr, dummyObjectives, true, false, -1, -1);
         } catch (Exception e) {
             System.err.println("Error rendering HUD preview: " + e.getMessage());
         }
@@ -82,7 +90,7 @@ public class SpeedrunHud {
 
             int savedY = ry;
             g.pose().translate(rx, ry);
-            renderHud(g, font, rw, rh, 5, showObj, showStats, timeStr, statsStr, dummyObjectives, true, false);
+            renderHud(g, font, rw, rh, 5, showObj, showStats, timeStr, statsStr, dummyObjectives, true, false, -1, -1);
             g.pose().translate(-rx, -savedY);
         } catch (Exception e) {
             // ignore
@@ -101,10 +109,44 @@ public class SpeedrunHud {
         }
     }
 
+    private static String ellipsis(net.minecraft.client.gui.Font font, String text, int maxWidth, float scale) {
+        int scaledWidth = (int)(font.width(text) * scale);
+        if (scaledWidth <= maxWidth) return text;
+        String ellipsis = "...";
+        int ellipsisWidth = (int)(font.width(ellipsis) * scale);
+        if (ellipsisWidth >= maxWidth) return ellipsis;
+        int availableWidth = maxWidth - ellipsisWidth;
+        int charCount = 0;
+        int currentWidth = 0;
+        while (charCount < text.length()) {
+            int charWidth = (int)(font.width(text.substring(0, charCount + 1)) * scale);
+            if (charWidth > availableWidth) break;
+            currentWidth = charWidth;
+            charCount++;
+        }
+        if (charCount == 0) return ellipsis;
+        return text.substring(0, charCount) + ellipsis;
+    }
+
+    private static void renderTooltip(GuiGraphics g, net.minecraft.client.gui.Font font,
+                                       List<Component> lines, int mouseX, int mouseY) {
+        try {
+            java.util.List<net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent> components = new java.util.ArrayList<>();
+            for (Component line : lines) {
+                components.add(net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent.create(line.getVisualOrderText()));
+            }
+            g.renderTooltip(font, components, mouseX, mouseY,
+                net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner.INSTANCE, null);
+        } catch (Throwable e) {
+            // fallback: do nothing
+        }
+    }
+
     static void renderHud(GuiGraphics g, net.minecraft.client.gui.Font font, int screenWidth, int screenHeight, int margin,
                           boolean showObjectivesList, boolean showStats,
                           String timeStr, String statsStr, List<Objective> renderObjectives,
-                          boolean isTimerRunning, boolean isPaused) {
+                          boolean isTimerRunning, boolean isPaused,
+                          int mouseX, int mouseY) {
 
         float baseTimerScale = Config.HUD_TIMER_SCALE.get().floatValue();
         float itemScale = Config.HUD_ITEM_SCALE.get().floatValue();
@@ -123,6 +165,9 @@ public class SpeedrunHud {
         String position = Config.HUD_POSITION.get();
         int offsetX = Config.HUD_OFFSET_X.get();
         int offsetY = Config.HUD_OFFSET_Y.get();
+
+        boolean iconsOnly = Config.HUD_ICONS_ONLY.get();
+        boolean showTooltips = Config.HUD_SHOW_TOOLTIPS.get();
 
         if (!showObjectivesList && !showStats) {
             float scale = baseTimerScale * 1.3f;
@@ -165,8 +210,12 @@ public class SpeedrunHud {
         boolean compactMode = renderObjectives.size() > 5;
         if (showObjectivesList) {
             for (Objective obj : renderObjectives) {
-                int w = (int)(font.width(obj.getDisplayName()) * textScale) + (compactMode ? 0 : (itemSize + 4));
-                if (w > maxTextWidth) maxTextWidth = w;
+                if (iconsOnly) {
+                    if (itemSize + 4 > maxTextWidth) maxTextWidth = itemSize + 4;
+                } else {
+                    int w = (int)(font.width(obj.getDisplayName()) * textScale) + (compactMode ? 0 : (itemSize + 4));
+                    if (w > maxTextWidth) maxTextWidth = w;
+                }
             }
         }
 
@@ -226,6 +275,8 @@ public class SpeedrunHud {
             currentY += 4;
         }
 
+        int hoveredIconIndex = -1;
+
         if (showObjectivesList) {
             g.pose().translate(textX, currentY);
             g.pose().scale(textScale, textScale);
@@ -240,13 +291,31 @@ public class SpeedrunHud {
             g.pose().translate(-textX, -currentY);
             currentY += (int)(12 * textScale);
 
-            for (Objective obj : renderObjectives) {
+            for (int i = 0; i < renderObjectives.size(); i++) {
+                Objective obj = renderObjectives.get(i);
                 Player player = Minecraft.getInstance().player;
                 boolean completed = (player != null) && obj.isCompleted(player);
                 int color = completed ? completedColor : textColor;
                 Component name = obj.getDisplayName();
 
-                if (compactMode) {
+                if (iconsOnly) {
+                    int iconCenterX = boxX + boxWidth / 2 - itemSize / 2;
+                    int iconCenterY = currentY + (lineSpacing - itemSize) / 2;
+
+                    g.pose().translate(iconCenterX, iconCenterY);
+                    g.pose().scale(itemScale, itemScale);
+                    g.renderItem(obj.getIcon(), 0, 0);
+                    g.pose().scale(1/itemScale, 1/itemScale);
+                    g.pose().translate(-iconCenterX, -iconCenterY);
+
+                    if (showTooltips && mouseX >= 0 && mouseY >= 0
+                        && mouseX >= iconCenterX && mouseX <= iconCenterX + itemSize
+                        && mouseY >= iconCenterY && mouseY <= iconCenterY + itemSize) {
+                        hoveredIconIndex = i;
+                    }
+
+                    currentY += lineSpacing;
+                } else if (compactMode) {
                     String prefix = completed
                         ? Component.translatable("gui.examplemod.completed_checkbox").getString() + " "
                         : Component.translatable("gui.examplemod.uncompleted_checkbox").getString() + " ";
@@ -260,9 +329,12 @@ public class SpeedrunHud {
                     float textH = 9 * textScale;
                     float yOffset = (itemSize - textH) / 2.0f;
 
+                    int maxTextSpace = boxWidth - margin * 2 - itemSize - 4;
+                    String displayName = ellipsis(font, name.getString(), maxTextSpace, textScale);
+
                     g.pose().translate(textX, currentY + yOffset);
                     g.pose().scale(textScale, textScale);
-                    g.drawString(font, name, 0, 0, color, false);
+                    g.drawString(font, displayName, 0, 0, color, false);
                     g.pose().scale(1/textScale, 1/textScale);
                     g.pose().translate(-textX, -(currentY + yOffset));
 
@@ -274,6 +346,12 @@ public class SpeedrunHud {
                     g.renderItem(obj.getIcon(), 0, 0);
                     g.pose().scale(1/itemScale, 1/itemScale);
                     g.pose().translate(-itemBaseX, -itemBaseY);
+
+                    if (showTooltips && mouseX >= 0 && mouseY >= 0
+                        && mouseX >= itemBaseX && mouseX <= itemBaseX + itemSize
+                        && mouseY >= itemBaseY && mouseY <= itemBaseY + itemSize) {
+                        hoveredIconIndex = i;
+                    }
 
                     currentY += lineSpacing;
                 }
@@ -294,6 +372,22 @@ public class SpeedrunHud {
             g.drawCenteredString(font, statsStr, 0, 0, statsColor);
             g.pose().scale(1/textScale, 1/textScale);
             g.pose().translate(-sCenterX, -sCenterY);
+        }
+
+        if (hoveredIconIndex >= 0 && showTooltips) {
+            Objective hovered = renderObjectives.get(hoveredIconIndex);
+            List<Component> tooltip = new ArrayList<>();
+            tooltip.add(hovered.getDisplayName().copy().withStyle(net.minecraft.ChatFormatting.YELLOW));
+            if (hovered.getDescription() != null && !hovered.getDescription().getString().isEmpty()) {
+                tooltip.add(hovered.getDescription());
+            } else {
+                if (hovered.getType() == Objective.Type.ITEM || hovered.getType() == Objective.Type.BLOCK) {
+                    tooltip.add(Component.translatable("gui.examplemod.obtain_item_tooltip"));
+                } else {
+                    tooltip.add(Component.translatable("gui.examplemod.obtain_advancement_tooltip"));
+                }
+            }
+            renderTooltip(g, font, tooltip, mouseX, mouseY);
         }
     }
 

@@ -95,10 +95,7 @@ public class ReminderScreen extends Screen {
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         guiGraphics.fill(0, 0, this.width, this.height, 0xCC000000);
 
-        Component titleText = showRetryConfirm
-            ? Component.translatable("gui.examplemod.retry_confirm_title")
-            : this.title;
-        guiGraphics.drawCenteredString(this.font, titleText, this.width / 2, 20, 0xFFFFFFFF);
+        guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 20, 0xFFFFFFFF);
 
         List<Objective> objectives = SpeedrunState.getObjectives();
         if (!objectives.isEmpty()) {

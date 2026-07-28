@@ -61,6 +61,8 @@ public class Config {
     public static final StringValue HUD_COMPLETED_COLOR;
     public static final IntValue HUD_OFFSET_X;
     public static final IntValue HUD_OFFSET_Y;
+    public static final BooleanValue HUD_ICONS_ONLY;
+    public static final BooleanValue HUD_SHOW_TOOLTIPS;
 
     // End Screen Configs
     public static final BooleanValue END_SHOW_STATS;
@@ -101,6 +103,8 @@ public class Config {
         HUD_COMPLETED_COLOR = new StringValue("hudCompletedColor", "#FF55FF55");
         HUD_OFFSET_X = new IntValue("hudOffsetX", 0);
         HUD_OFFSET_Y = new IntValue("hudOffsetY", 0);
+        HUD_ICONS_ONLY = new BooleanValue("hudIconsOnly", false);
+        HUD_SHOW_TOOLTIPS = new BooleanValue("hudShowTooltips", true);
 
         END_SHOW_STATS = new BooleanValue("endShowStats", true);
         END_SHOW_SPLITS = new BooleanValue("endShowSplits", true);

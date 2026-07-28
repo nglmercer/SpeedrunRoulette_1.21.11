@@ -76,7 +76,9 @@ public class HudConfigScreen extends Screen {
             this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_background", Config.HUD_SHOW_BACKGROUND)); y += gap;
             this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_border", Config.HUD_SHOW_BORDER)); y += gap;
             this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_objectives", Config.HUD_SHOW_OBJECTIVES)); y += gap;
-            this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_stats", Config.HUD_SHOW_STATS)); y += gap + 4;
+            this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_stats", Config.HUD_SHOW_STATS)); y += gap;
+            this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.icons_only", Config.HUD_ICONS_ONLY)); y += gap;
+            this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_tooltips", Config.HUD_SHOW_TOOLTIPS)); y += gap + 4;
 
             addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.text_color", Config.HUD_TEXT_COLOR); y += gap;
             addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.timer_color", Config.HUD_TIMER_COLOR); y += gap;

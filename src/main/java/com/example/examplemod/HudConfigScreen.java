@@ -10,8 +10,12 @@ import net.minecraft.network.chat.Component;
 
 public class HudConfigScreen extends Screen {
     private final Screen parent;
+    private int activeTab = 0;
     private int scrollOffset = 0;
     private int maxScroll = 0;
+    private static final String[] TAB_KEYS = {"gui.examplemod.hud_config.tab.hud", "gui.examplemod.hud_config.tab.end_screens"};
+    private static final int TAB_WIDTH = 80;
+    private static final int OPTIONS_WIDTH = 170;
 
     public HudConfigScreen(Screen parent) {
         super(Component.translatable("gui.examplemod.hud_config.title"));
@@ -20,81 +24,84 @@ public class HudConfigScreen extends Screen {
 
     @Override
     protected void init() {
-        int w = 150;
+        int tabY = 28;
+        int tabX = this.width / 2 - TAB_WIDTH;
+        for (int i = 0; i < TAB_KEYS.length; i++) {
+            final int idx = i;
+            boolean selected = (idx == activeTab);
+            this.addRenderableWidget(Button.builder(
+                Component.translatable(TAB_KEYS[i]),
+                (btn) -> {
+                    activeTab = idx;
+                    scrollOffset = 0;
+                    rebuildWidgets();
+                }
+            ).bounds(tabX + i * (TAB_WIDTH + 4), tabY, TAB_WIDTH, 18).build());
+        }
+
+        int y = 55 - scrollOffset;
+        int x = 15;
+        int w = OPTIONS_WIDTH;
         int h = 20;
-        int x = 20;
-        int y = 35 - scrollOffset;
         int gap = 24;
 
-        y = sectionHeader(x, y, w, "gui.examplemod.hud_config.section.hud");
-        y += gap;
+        if (activeTab == 0) {
+            addScaleRow(x, y, w, h, "gui.examplemod.hud_config.timer_scale", Config.HUD_TIMER_SCALE); y += gap;
+            addScaleRow(x, y, w, h, "gui.examplemod.hud_config.item_scale", Config.HUD_ITEM_SCALE); y += gap;
+            addScaleRow(x, y, w, h, "gui.examplemod.hud_config.text_scale", Config.HUD_TEXT_SCALE); y += gap;
 
-        addScaleRow(x, y, w, h, "gui.examplemod.hud_config.timer_scale", Config.HUD_TIMER_SCALE); y += gap;
-        addScaleRow(x, y, w, h, "gui.examplemod.hud_config.item_scale", Config.HUD_ITEM_SCALE); y += gap;
-        addScaleRow(x, y, w, h, "gui.examplemod.hud_config.text_scale", Config.HUD_TEXT_SCALE); y += gap;
+            String posLabel = switch (Config.HUD_POSITION.get()) {
+                case "top_left" -> "gui.examplemod.hud_config.pos.top_left";
+                case "bottom_right" -> "gui.examplemod.hud_config.pos.bottom_right";
+                case "bottom_left" -> "gui.examplemod.hud_config.pos.bottom_left";
+                default -> "gui.examplemod.hud_config.pos.top_right";
+            };
+            this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.hud_config.position", Component.translatable(posLabel).getString()), (btn) -> {
+                String cur = Config.HUD_POSITION.get();
+                Config.HUD_POSITION.set(switch (cur) {
+                    case "top_right" -> "top_left";
+                    case "top_left" -> "bottom_left";
+                    case "bottom_left" -> "bottom_right";
+                    default -> "top_right";
+                });
+                this.rebuildWidgets();
+            }).bounds(x, y, w, h).build());
+            y += gap;
 
-        String posLabel = switch (Config.HUD_POSITION.get()) {
-            case "top_left" -> "gui.examplemod.hud_config.pos.top_left";
-            case "bottom_right" -> "gui.examplemod.hud_config.pos.bottom_right";
-            case "bottom_left" -> "gui.examplemod.hud_config.pos.bottom_left";
-            default -> "gui.examplemod.hud_config.pos.top_right";
-        };
-        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.hud_config.position", Component.translatable(posLabel).getString()), (btn) -> {
-            String cur = Config.HUD_POSITION.get();
-            Config.HUD_POSITION.set(switch (cur) {
-                case "top_right" -> "top_left";
-                case "top_left" -> "bottom_left";
-                case "bottom_left" -> "bottom_right";
-                default -> "top_right";
-            });
-            this.rebuildWidgets();
-        }).bounds(x, y, w, h).build());
-        y += gap;
+            addOpacitySlider(x, y, w, h); y += gap;
+            addScaleRow(x, y, w, h, "gui.examplemod.hud_config.offset_x", Config.HUD_OFFSET_X, -200, 200, 5); y += gap;
+            addScaleRow(x, y, w, h, "gui.examplemod.hud_config.offset_y", Config.HUD_OFFSET_Y, -200, 200, 5); y += gap + 4;
 
-        addOpacitySlider(x, y, w, h); y += gap;
-        addScaleRow(x, y, w, h, "gui.examplemod.hud_config.offset_x", Config.HUD_OFFSET_X, -200, 200, 5); y += gap;
-        addScaleRow(x, y, w, h, "gui.examplemod.hud_config.offset_y", Config.HUD_OFFSET_Y, -200, 200, 5); y += gap + 4;
+            this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_background", Config.HUD_SHOW_BACKGROUND)); y += gap;
+            this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_border", Config.HUD_SHOW_BORDER)); y += gap;
+            this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_objectives", Config.HUD_SHOW_OBJECTIVES)); y += gap;
+            this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_stats", Config.HUD_SHOW_STATS)); y += gap + 4;
 
-        this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_background", Config.HUD_SHOW_BACKGROUND)); y += gap;
-        this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_border", Config.HUD_SHOW_BORDER)); y += gap;
-        this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_objectives", Config.HUD_SHOW_OBJECTIVES)); y += gap;
-        this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.hud_config.show_stats", Config.HUD_SHOW_STATS)); y += gap + 4;
+            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.text_color", Config.HUD_TEXT_COLOR); y += gap;
+            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.timer_color", Config.HUD_TIMER_COLOR); y += gap;
+            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.stats_color", Config.HUD_STATS_COLOR); y += gap;
+            addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.completed_color", Config.HUD_COMPLETED_COLOR); y += gap;
+        } else {
+            this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.end_config.show_stats", Config.END_SHOW_STATS)); y += gap;
+            this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.end_config.show_splits", Config.END_SHOW_SPLITS)); y += gap;
+            this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.end_config.show_icon", Config.END_SHOW_ICON)); y += gap;
 
-        addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.text_color", Config.HUD_TEXT_COLOR); y += gap;
-        addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.timer_color", Config.HUD_TIMER_COLOR); y += gap;
-        addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.stats_color", Config.HUD_STATS_COLOR); y += gap;
-        addColorHueSlider(x, y, w, h, "gui.examplemod.hud_config.completed_color", Config.HUD_COMPLETED_COLOR); y += gap + 8;
-
-        y = sectionHeader(x, y, w, "gui.examplemod.hud_config.section.end_screens");
-        y += gap;
-
-        this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.end_config.show_stats", Config.END_SHOW_STATS)); y += gap;
-        this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.end_config.show_splits", Config.END_SHOW_SPLITS)); y += gap;
-        this.addRenderableWidget(toggleButton(x, y, w, h, "gui.examplemod.end_config.show_icon", Config.END_SHOW_ICON)); y += gap;
-
-        this.addRenderableWidget(new ConfigSlider(x, y, w, h,
-            "gui.examplemod.end_config.bg_opacity",
-            Config.END_BG_OPACITY.get(), 0.0, 1.0, (val) -> {
-                Config.END_BG_OPACITY.set(Math.round(val * 100.0) / 100.0);
-            }) {
-            @Override protected Component buildLabel() {
-                return Component.translatable("gui.examplemod.end_config.bg_opacity", String.format("%.0f%%", Config.END_BG_OPACITY.get() * 100));
-            }
-        }); y += gap;
+            this.addRenderableWidget(new ConfigSlider(x, y, w, h,
+                "gui.examplemod.end_config.bg_opacity",
+                Config.END_BG_OPACITY.get(), 0.0, 1.0, (val) -> {
+                    Config.END_BG_OPACITY.set(Math.round(val * 100.0) / 100.0);
+                }) {
+                @Override protected Component buildLabel() {
+                    return Component.translatable("gui.examplemod.end_config.bg_opacity", String.format("%.0f%%", Config.END_BG_OPACITY.get() * 100));
+                }
+            }); y += gap;
+        }
 
         maxScroll = Math.max(0, (y + scrollOffset) - (this.height - 40));
 
         this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, (btn) -> {
             this.minecraft.setScreen(this.parent);
         }).bounds(this.width / 2 - 100, this.height - 28, 200, 20).build());
-    }
-
-    private int sectionHeader(int x, int y, int w, String key) {
-        this.addRenderableWidget(Button.builder(
-            Component.translatable(key).withStyle(net.minecraft.ChatFormatting.BOLD, net.minecraft.ChatFormatting.GOLD),
-            (btn) -> {}
-        ).bounds(x, y, w, 16).build());
-        return y + 18;
     }
 
     private void addOpacitySlider(int x, int y, int w, int h) {
@@ -172,18 +179,26 @@ public class HudConfigScreen extends Screen {
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         this.renderTransparentBackground(g);
         super.render(g, mouseX, mouseY, partialTick);
-        g.drawCenteredString(this.font, this.title, this.width / 2, 10, 0xFFFFFF);
+        g.drawCenteredString(this.font, this.title, this.width / 2, 8, 0xFFFFFF);
 
-        int previewX = this.width / 2 + 20;
-        g.drawString(this.font, Component.translatable("gui.examplemod.hud_config.preview"), previewX, 35, 0xFFFFFF);
-        SpeedrunHud.renderPreviewHud(g, this.width, 10);
+        int previewX = OPTIONS_WIDTH + 25;
+        int previewW = this.width - previewX - 10;
+        int previewY = 52;
+        int previewH = this.height - previewY - 40;
 
-        int endY = 200;
-        g.drawString(this.font, Component.translatable("gui.examplemod.end_config.preview"), previewX, endY - 12, 0xFFFFFF);
-        renderEndScreenPreview(g, previewX, endY, this.width - previewX - 10, 120);
+        g.fill(previewX, previewY, previewX + previewW, previewY + previewH, 0x40000000);
+        g.renderOutline(previewX - 1, previewY - 1, previewW + 2, previewH + 2, 0xFF444444);
+
+        if (activeTab == 0) {
+            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.hud_config.preview"), previewX + previewW / 2, previewY + 4, 0xFFAAAAAA);
+            SpeedrunHud.renderPreviewHudAt(g, previewX, previewY + 16, previewW, previewH - 20);
+        } else {
+            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.end_config.preview"), previewX + previewW / 2, previewY + 4, 0xFFAAAAAA);
+            renderEndScreenPreview(g, previewX, previewY + 16, previewW, previewH - 20);
+        }
 
         if (maxScroll > 0) {
-            g.drawString(this.font, Component.translatable("gui.examplemod.hud_config.scroll_hint"), 20, this.height - 38, 0xFF888888);
+            g.drawString(this.font, Component.translatable("gui.examplemod.hud_config.scroll_hint"), 15, this.height - 38, 0xFF666666);
         }
     }
 

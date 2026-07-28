@@ -63,6 +63,32 @@ public class SpeedrunHud {
         }
     }
 
+    public static void renderPreviewHudAt(GuiGraphics g, int rx, int ry, int rw, int rh) {
+        try {
+            net.minecraft.client.gui.Font font = Minecraft.getInstance().font;
+            if (font == null) return;
+
+            boolean showObj = Config.HUD_SHOW_OBJECTIVES.get();
+            boolean showStats = Config.HUD_SHOW_STATS.get();
+
+            String timeStr = "00:42.000";
+            String statsStr = Component.translatable("gui.examplemod.deaths_label").getString() + " 5 | " +
+                Component.translatable("gui.examplemod.distance_label").getString() + " 1234m | " +
+                Component.translatable("gui.examplemod.days_label").getString() + " 2";
+
+            List<Objective> dummyObjectives = new ArrayList<>();
+            dummyObjectives.add(new Objective("preview_item", Component.translatable("gui.examplemod.preview_iron_ingot"), new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_INGOT), Objective.Type.ITEM));
+            dummyObjectives.add(new Objective("preview_block", Component.translatable("gui.examplemod.preview_dirt_block"), new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIRT), Objective.Type.BLOCK));
+
+            int savedY = ry;
+            g.pose().translate(rx, ry);
+            renderHud(g, font, rw, rh, 5, showObj, showStats, timeStr, statsStr, dummyObjectives, true, false);
+            g.pose().translate(-rx, -savedY);
+        } catch (Exception e) {
+            // ignore
+        }
+    }
+
     static int parseColor(String colorStr, int defaultColor) {
         if (colorStr == null || colorStr.isEmpty()) return defaultColor;
         try {

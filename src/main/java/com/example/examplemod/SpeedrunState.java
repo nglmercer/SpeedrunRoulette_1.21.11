@@ -215,7 +215,7 @@ public class SpeedrunState {
             objectivesLoaded = true;
             autoOpenDelayTicks = 0;
         } else {
-            SpeedrunRoulette.LOGGER.warn("[LoadObjectives] No singleplayer server available");
+        //    SpeedrunRoulette.LOGGER.warn("[LoadObjectives] No singleplayer server available");
         }
     }
 

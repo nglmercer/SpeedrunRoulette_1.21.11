@@ -66,7 +66,7 @@ public class SpeedrunConfigScreen extends Screen {
                         data.setGameMode(next);
                         SpeedrunNetwork.broadcastRunState(server);
                     } else {
-                        SpeedrunNetwork.sendToServer(new SpeedrunNetwork.SetGameModePacket(next));
+                        SpeedrunNetworkClient.sendToServer(new SpeedrunNetwork.SetGameModePacket(next));
                     }
                 }
             }

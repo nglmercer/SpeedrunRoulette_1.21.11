@@ -1,107 +1,89 @@
 package com.example.examplemod;
 
-import net.neoforged.neoforge.common.ModConfigSpec;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
+import com.mojang.logging.LogUtils;
+import net.fabricmc.loader.api.FabricLoader;
+import org.slf4j.Logger;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Lightweight JSON-backed configuration that mirrors the small slice of the old
+ * NeoForge {@code ModConfigSpec} API used by this mod ({@code .get()}, {@code .set()},
+ * {@code SPEC.save()}). Values persist to {@code config/examplemod.json}.
+ */
 public class Config {
-    public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final List<ConfigValue<?>> ALL = new ArrayList<>();
+    private static boolean loaded = false;
 
-    public static final ModConfigSpec.BooleanValue LOG_DIRT_BLOCK;
-    public static final ModConfigSpec.IntValue MAGIC_NUMBER;
-    public static final ModConfigSpec.ConfigValue<String> MAGIC_NUMBER_INTRODUCTION;
-    public static final ModConfigSpec.ConfigValue<List<? extends String>> ITEM_STRINGS;
-    
-    public static final ModConfigSpec.BooleanValue AUTO_OPEN_WHEEL;
-    public static final ModConfigSpec.BooleanValue AUTO_START;
-    public static final ModConfigSpec.IntValue OBJECTIVE_COUNT;
+    public static final BooleanValue LOG_DIRT_BLOCK;
+    public static final IntValue MAGIC_NUMBER;
+    public static final StringValue MAGIC_NUMBER_INTRODUCTION;
+    public static final StringListValue ITEM_STRINGS;
+
+    public static final BooleanValue AUTO_OPEN_WHEEL;
+    public static final BooleanValue AUTO_START;
+    public static final IntValue OBJECTIVE_COUNT;
     /** Default multiplayer mode: COOPERATIVE or CHALLENGE. Applied when a run starts. */
-    public static final ModConfigSpec.ConfigValue<String> GAME_MODE;
-    
-    public static final ModConfigSpec.BooleanValue ENABLE_ITEMS;
-    public static final ModConfigSpec.BooleanValue ENABLE_BLOCKS;
-    public static final ModConfigSpec.BooleanValue ENABLE_ADVANCEMENTS;
-    public static final ModConfigSpec.ConfigValue<String> POOL_FILTER;
-    public static final ModConfigSpec.ConfigValue<List<? extends String>> BLACKLIST;
-    public static final ModConfigSpec.ConfigValue<String> FORCED_LANGUAGE;
-    
+    public static final StringValue GAME_MODE;
+
+    public static final BooleanValue ENABLE_ITEMS;
+    public static final BooleanValue ENABLE_BLOCKS;
+    public static final BooleanValue ENABLE_ADVANCEMENTS;
+    public static final StringValue POOL_FILTER;
+    public static final StringListValue BLACKLIST;
+    public static final StringValue FORCED_LANGUAGE;
+
     // HUD Configs
-    public static final ModConfigSpec.DoubleValue HUD_TIMER_SCALE;
-    public static final ModConfigSpec.DoubleValue HUD_ITEM_SCALE;
-    public static final ModConfigSpec.DoubleValue HUD_TEXT_SCALE;
-    public static final ModConfigSpec.ConfigValue<String> HUD_TEXT_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> HUD_TIMER_COLOR;
+    public static final DoubleValue HUD_TIMER_SCALE;
+    public static final DoubleValue HUD_ITEM_SCALE;
+    public static final DoubleValue HUD_TEXT_SCALE;
+    public static final StringValue HUD_TEXT_COLOR;
+    public static final StringValue HUD_TIMER_COLOR;
 
     static {
-        BUILDER.push("Configs for Speedrun Roulette");
+        LOG_DIRT_BLOCK = new BooleanValue("logDirtBlock", true);
+        MAGIC_NUMBER = new IntValue("magicNumber", 42);
+        MAGIC_NUMBER_INTRODUCTION = new StringValue("magicNumberIntroduction", "The magic number is... ");
+        ITEM_STRINGS = new StringListValue("items", List.of("minecraft:iron_ingot"));
 
-        LOG_DIRT_BLOCK = BUILDER.comment("Whether to log the dirt block on common setup")
-                .define("logDirtBlock", true);
-        
-        // ... existing ...
+        AUTO_OPEN_WHEEL = new BooleanValue("autoOpenWheel", true);
+        AUTO_START = new BooleanValue("autoStart", true);
+        OBJECTIVE_COUNT = new IntValue("objectiveCount", 1);
+        GAME_MODE = new StringValue("gameMode", "COOPERATIVE");
 
-        MAGIC_NUMBER = BUILDER.comment("A magic number")
-                .defineInRange("magicNumber", 42, 0, Integer.MAX_VALUE);
+        ENABLE_ITEMS = new BooleanValue("enableItems", true);
+        ENABLE_BLOCKS = new BooleanValue("enableBlocks", true);
+        ENABLE_ADVANCEMENTS = new BooleanValue("enableAdvancements", true);
+        POOL_FILTER = new StringValue("poolFilter", "");
+        BLACKLIST = new StringListValue("blacklist", List.of());
+        FORCED_LANGUAGE = new StringValue("forcedLanguage", "");
 
-        MAGIC_NUMBER_INTRODUCTION = BUILDER.comment("What you want the introduction message to be for the magic number")
-                .define("magicNumberIntroduction", "The magic number is... ");
-
-        ITEM_STRINGS = BUILDER.comment("A list of items to log on common setup")
-                .defineListAllowEmpty("items", List.of("minecraft:iron_ingot"), Config::validateItemName);
-        
-        AUTO_OPEN_WHEEL = BUILDER.comment("Automatically open wheel on new world")
-                .define("autoOpenWheel", true);
-
-        AUTO_START = BUILDER.comment("Automatically start timer when objectives are set")
-                .define("autoStart", true);
-
-        OBJECTIVE_COUNT = BUILDER.comment("Number of objectives (1-10)")
-                .defineInRange("objectiveCount", 1, 1, 10);
-
-        GAME_MODE = BUILDER.comment(
-                "Default multiplayer game mode: COOPERATIVE (shared win, default) or CHALLENGE (first to finish wins, others lose)")
-                .define("gameMode", "COOPERATIVE");
-                
-        ENABLE_ITEMS = BUILDER.comment("Include Items in the objective pool")
-                .define("enableItems", true);
-
-        ENABLE_BLOCKS = BUILDER.comment("Include Blocks in the objective pool")
-                .define("enableBlocks", true);
-
-        ENABLE_ADVANCEMENTS = BUILDER.comment("Include Advancements in the objective pool")
-                .define("enableAdvancements", true);
-
-        POOL_FILTER = BUILDER.comment("Filter string for objectives (contains)")
-                .define("poolFilter", "");
-
-        BLACKLIST = BUILDER.comment("List of disabled objective IDs")
-                .defineListAllowEmpty("blacklist", List.of(), s -> s instanceof String);
-
-        FORCED_LANGUAGE = BUILDER.comment("Force mod language (e.g. en_us, es_es, fr_fr). Empty = use Minecraft default.")
-                .define("forcedLanguage", "");
-
-        BUILDER.push("HUD Configuration");
-        
-        HUD_TIMER_SCALE = BUILDER.comment("Scale of the timer text")
-                .defineInRange("hudTimerScale", 1.25, 0.5, 5.0);
-        
-        HUD_ITEM_SCALE = BUILDER.comment("Scale of the objective items")
-                .defineInRange("hudItemScale", 1.5, 0.5, 5.0);
-                
-        HUD_TEXT_SCALE = BUILDER.comment("Scale of the text (objectives/stats)")
-                .defineInRange("hudTextScale", 1.0, 0.5, 5.0);
-                
-        HUD_TEXT_COLOR = BUILDER.comment("Hex color for text (Format: #AARRGGBB or #RRGGBB)")
-                .define("hudTextColor", "#FFFFFFFF");
-                
-        HUD_TIMER_COLOR = BUILDER.comment("Hex color for timer (Format: #AARRGGBB or #RRGGBB). Leave empty to use dynamic colors.")
-                .define("hudTimerColor", "");
-                
-        BUILDER.pop();
-
-        BUILDER.pop();
+        HUD_TIMER_SCALE = new DoubleValue("hudTimerScale", 1.25);
+        HUD_ITEM_SCALE = new DoubleValue("hudItemScale", 1.5);
+        HUD_TEXT_SCALE = new DoubleValue("hudTextScale", 1.0);
+        HUD_TEXT_COLOR = new StringValue("hudTextColor", "#FFFFFFFF");
+        HUD_TIMER_COLOR = new StringValue("hudTimerColor", "");
     }
 
-    public static final ModConfigSpec SPEC = BUILDER.build();
+    public static final Spec SPEC = new Spec();
+
+    public static final class Spec {
+        public void save() {
+            Config.save();
+        }
+    }
 
     public static SpeedrunGameMode getGameMode() {
         return SpeedrunGameMode.fromString(GAME_MODE.get());
@@ -111,7 +93,181 @@ public class Config {
         GAME_MODE.set(mode.name());
     }
 
-    private static boolean validateItemName(final Object obj) {
-        return obj instanceof String itemName && itemName.length() > 0;
+    private static Path configPath() {
+        return FabricLoader.getInstance().getConfigDir().resolve("examplemod.json");
+    }
+
+    /** Loads config from disk (if present) and marks the config as ready. */
+    public static void load() {
+        try {
+            Path path = configPath();
+            if (Files.exists(path)) {
+                JsonObject obj = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
+                for (ConfigValue<?> value : ALL) {
+                    JsonElement el = obj.get(value.key);
+                    if (el != null) {
+                        value.fromJson(el);
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            LOGGER.error("Failed to load config, using defaults", t);
+        }
+        loaded = true;
+        save();
+    }
+
+    public static void save() {
+        try {
+            Path path = configPath();
+            Files.createDirectories(path.getParent());
+            JsonObject obj = new JsonObject();
+            for (ConfigValue<?> value : ALL) {
+                obj.add(value.key, value.toJson());
+            }
+            Files.writeString(path, GSON.toJson(obj));
+        } catch (Throwable t) {
+            LOGGER.error("Failed to save config", t);
+        }
+    }
+
+    // --- Value types ---
+
+    public abstract static class ConfigValue<T> {
+        protected final String key;
+        protected T value;
+        protected final T defaultValue;
+
+        ConfigValue(String key, T defaultValue) {
+            this.key = key;
+            this.defaultValue = defaultValue;
+            this.value = defaultValue;
+            ALL.add(this);
+        }
+
+        public T get() {
+            return value;
+        }
+
+        public void set(T newValue) {
+            this.value = newValue;
+            if (loaded) {
+                save();
+            }
+        }
+
+        abstract JsonElement toJson();
+
+        abstract void fromJson(JsonElement el);
+    }
+
+    public static final class BooleanValue extends ConfigValue<Boolean> {
+        BooleanValue(String key, boolean defaultValue) {
+            super(key, defaultValue);
+        }
+
+        public void set(boolean newValue) {
+            set(Boolean.valueOf(newValue));
+        }
+
+        @Override
+        JsonElement toJson() {
+            return new JsonPrimitive(value);
+        }
+
+        @Override
+        void fromJson(JsonElement el) {
+            if (el != null && el.isJsonPrimitive()) {
+                value = el.getAsBoolean();
+            }
+        }
+    }
+
+    public static final class IntValue extends ConfigValue<Integer> {
+        IntValue(String key, int defaultValue) {
+            super(key, defaultValue);
+        }
+
+        public void set(int newValue) {
+            set(Integer.valueOf(newValue));
+        }
+
+        @Override
+        JsonElement toJson() {
+            return new JsonPrimitive(value);
+        }
+
+        @Override
+        void fromJson(JsonElement el) {
+            if (el != null && el.isJsonPrimitive()) {
+                value = el.getAsInt();
+            }
+        }
+    }
+
+    public static final class DoubleValue extends ConfigValue<Double> {
+        DoubleValue(String key, double defaultValue) {
+            super(key, defaultValue);
+        }
+
+        public void set(double newValue) {
+            set(Double.valueOf(newValue));
+        }
+
+        @Override
+        JsonElement toJson() {
+            return new JsonPrimitive(value);
+        }
+
+        @Override
+        void fromJson(JsonElement el) {
+            if (el != null && el.isJsonPrimitive()) {
+                value = el.getAsDouble();
+            }
+        }
+    }
+
+    public static final class StringValue extends ConfigValue<String> {
+        StringValue(String key, String defaultValue) {
+            super(key, defaultValue);
+        }
+
+        @Override
+        JsonElement toJson() {
+            return new JsonPrimitive(value);
+        }
+
+        @Override
+        void fromJson(JsonElement el) {
+            if (el != null && el.isJsonPrimitive()) {
+                value = el.getAsString();
+            }
+        }
+    }
+
+    public static final class StringListValue extends ConfigValue<List<? extends String>> {
+        StringListValue(String key, List<? extends String> defaultValue) {
+            super(key, defaultValue);
+        }
+
+        @Override
+        JsonElement toJson() {
+            JsonArray array = new JsonArray();
+            for (String s : value) {
+                array.add(s);
+            }
+            return array;
+        }
+
+        @Override
+        void fromJson(JsonElement el) {
+            if (el != null && el.isJsonArray()) {
+                List<String> list = new ArrayList<>();
+                for (JsonElement e : el.getAsJsonArray()) {
+                    list.add(e.getAsString());
+                }
+                value = list;
+            }
+        }
     }
 }

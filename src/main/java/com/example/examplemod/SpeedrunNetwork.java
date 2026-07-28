@@ -7,10 +7,9 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.client.network.ClientPacketDistributor;
-import net.neoforged.neoforge.network.PacketDistributor;
-import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
-import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,91 +17,58 @@ import java.util.UUID;
 
 public class SpeedrunNetwork {
 
-    private static final String PROTOCOL_VERSION = "2";
+    /** Registers all packet codecs. Call from the common initializer (runs on both sides). */
+    public static void registerPayloadTypes() {
+        // Server -> Client
+        PayloadTypeRegistry.playS2C().register(SyncRunStatePacket.TYPE, SyncRunStatePacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(SyncObjectivesPacket.TYPE, SyncObjectivesPacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(RunFinishedPacket.TYPE, RunFinishedPacket.CODEC);
 
-    public static void register(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("examplemod")
-                .versioned(PROTOCOL_VERSION)
-                .optional();
+        // Client -> Server
+        PayloadTypeRegistry.playC2S().register(SaveObjectivesPacket.TYPE, SaveObjectivesPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(SetGameModePacket.TYPE, SetGameModePacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(ClaimFinishPacket.TYPE, ClaimFinishPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(SaveRunInfoPacket.TYPE, SaveRunInfoPacket.CODEC);
+    }
 
-        // Server -> Client: full run state (objectives + mode + finish)
-        registrar.playToClient(
-                SyncRunStatePacket.TYPE,
-                SyncRunStatePacket.CODEC,
-                (payload, context) -> context.enqueueWork(() ->
-                        SpeedrunState.applySyncedRunState(payload)
-                )
-        );
+    /** Registers server-side handlers for client->server packets. Call from the common initializer. */
+    public static void registerServerReceivers() {
+        ServerPlayNetworking.registerGlobalReceiver(SaveObjectivesPacket.TYPE, (payload, context) -> {
+            ServerPlayer sp = context.player();
+            context.server().execute(() -> {
+                var server = getServer(sp);
+                if (server == null) return;
+                SpeedrunWorldData data = SpeedrunWorldData.get(server);
+                data.setGameMode(payload.gameMode);
+                data.setObjectives(payload.objectives);
+                broadcastRunState(server);
+            });
+        });
 
-        // Legacy objectives-only sync still supported for compatibility
-        registrar.playToClient(
-                SyncObjectivesPacket.TYPE,
-                SyncObjectivesPacket.CODEC,
-                (payload, context) -> context.enqueueWork(() ->
-                        SpeedrunState.setObjectives(payload.objectives, false)
-                )
-        );
+        ServerPlayNetworking.registerGlobalReceiver(SetGameModePacket.TYPE, (payload, context) -> {
+            ServerPlayer sp = context.player();
+            context.server().execute(() -> {
+                var server = getServer(sp);
+                if (server == null) return;
+                SpeedrunWorldData data = SpeedrunWorldData.get(server);
+                data.setGameMode(payload.gameMode);
+                broadcastRunState(server);
+            });
+        });
 
-        // Server -> Client: run finished (victory / defeat)
-        registrar.playToClient(
-                RunFinishedPacket.TYPE,
-                RunFinishedPacket.CODEC,
-                (payload, context) -> context.enqueueWork(() ->
-                        SpeedrunState.handleRunFinished(payload)
-                )
-        );
+        ServerPlayNetworking.registerGlobalReceiver(ClaimFinishPacket.TYPE, (payload, context) -> {
+            ServerPlayer sp = context.player();
+            context.server().execute(() -> handleClaimFinish(sp, payload.time));
+        });
 
-        // Client -> Server: save objectives + mode and broadcast to all
-        registrar.playToServer(
-                SaveObjectivesPacket.TYPE,
-                SaveObjectivesPacket.CODEC,
-                (payload, context) -> context.enqueueWork(() -> {
-                    if (context.player() instanceof ServerPlayer sp) {
-                        var server = getServer(sp);
-                        if (server == null) return;
-                        SpeedrunWorldData data = SpeedrunWorldData.get(server);
-                        data.setGameMode(payload.gameMode);
-                        data.setObjectives(payload.objectives);
-                        broadcastRunState(server);
-                    }
-                })
-        );
-
-        // Client -> Server: set game mode only
-        registrar.playToServer(
-                SetGameModePacket.TYPE,
-                SetGameModePacket.CODEC,
-                (payload, context) -> context.enqueueWork(() -> {
-                    if (context.player() instanceof ServerPlayer sp) {
-                        var server = getServer(sp);
-                        if (server == null) return;
-                        SpeedrunWorldData data = SpeedrunWorldData.get(server);
-                        data.setGameMode(payload.gameMode);
-                        broadcastRunState(server);
-                    }
-                })
-        );
-
-        // Client -> Server: claim finish (server is authoritative)
-        registrar.playToServer(
-                ClaimFinishPacket.TYPE,
-                ClaimFinishPacket.CODEC,
-                (payload, context) -> context.enqueueWork(() -> {
-                    if (context.player() instanceof ServerPlayer sp) {
-                        handleClaimFinish(sp, payload.time);
-                    }
-                })
-        );
-
-        registrar.playToServer(
-                SaveRunInfoPacket.TYPE,
-                SaveRunInfoPacket.CODEC,
-                (payload, context) -> context.enqueueWork(() -> {
-                    if (context.player() instanceof ServerPlayer sp) {
-                        SpeedrunWorldData.get(getServer(sp)).setRunInfo(payload.isVictory, payload.time, payload.objectiveName);
-                    }
-                })
-        );
+        ServerPlayNetworking.registerGlobalReceiver(SaveRunInfoPacket.TYPE, (payload, context) -> {
+            ServerPlayer sp = context.player();
+            context.server().execute(() -> {
+                var server = getServer(sp);
+                if (server == null) return;
+                SpeedrunWorldData.get(server).setRunInfo(payload.isVictory, payload.time, payload.objectiveName);
+            });
+        });
     }
 
     static net.minecraft.server.MinecraftServer getServer(ServerPlayer player) {
@@ -112,23 +78,22 @@ public class SpeedrunNetwork {
         return null;
     }
 
-    public static void sendToServer(CustomPacketPayload payload) {
-        ClientPacketDistributor.sendToServer(payload);
-    }
-
     public static void sendToPlayer(CustomPacketPayload payload, ServerPlayer player) {
-        PacketDistributor.sendToPlayer(player, payload);
+        ServerPlayNetworking.send(player, payload);
     }
 
-    public static void sendToAllPlayers(CustomPacketPayload payload) {
-        PacketDistributor.sendToAllPlayers(payload);
+    public static void sendToAllPlayers(CustomPacketPayload payload, net.minecraft.server.MinecraftServer server) {
+        if (server == null) return;
+        for (ServerPlayer player : PlayerLookup.all(server)) {
+            ServerPlayNetworking.send(player, payload);
+        }
     }
 
     public static void broadcastRunState(net.minecraft.server.MinecraftServer server) {
         if (server == null) return;
         SpeedrunWorldData data = SpeedrunWorldData.get(server);
         SyncRunStatePacket packet = SyncRunStatePacket.fromWorldData(data);
-        sendToAllPlayers(packet);
+        sendToAllPlayers(packet, server);
     }
 
     public static void sendRunStateToPlayer(ServerPlayer player) {
@@ -179,7 +144,7 @@ public class SpeedrunNetwork {
                 name,
                 finishTime
         );
-        sendToAllPlayers(result);
+        sendToAllPlayers(result, server);
         // Keep clients' objective/mode state in sync too
         broadcastRunState(server);
     }

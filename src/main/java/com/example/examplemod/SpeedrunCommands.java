@@ -4,9 +4,6 @@ import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 /**
  * Registers all /speedrun sub-commands.
@@ -18,12 +15,9 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
  * The beginXxxAndDisconnect() methods themselves call mc.disconnect() directly, so
  * they MUST be wrapped in mc.execute().
  */
-@EventBusSubscriber(modid = SpeedrunRoulette.MODID)
 public class SpeedrunCommands {
 
-    @SubscribeEvent
-    public static void onRegisterCommands(RegisterCommandsEvent event) {
-        CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
+    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 
         dispatcher.register(
             Commands.literal("speedrun")

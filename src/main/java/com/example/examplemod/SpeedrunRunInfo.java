@@ -75,7 +75,7 @@ public class SpeedrunRunInfo {
                 NbtIo.writeCompressed(tag, infoFile.toPath());
                 SpeedrunRoulette.LOGGER.info("Saved run info to " + infoFile.getAbsolutePath());
             } else if (mc.player != null && mc.player.connection != null) {
-                SpeedrunNetwork.sendToServer(new SpeedrunNetwork.SaveRunInfoPacket(isVictory, time, objectiveName));
+                SpeedrunNetworkClient.sendToServer(new SpeedrunNetwork.SaveRunInfoPacket(isVictory, time, objectiveName));
             }
         } catch (Throwable t) {
             SpeedrunRoulette.LOGGER.error("Failed to save run info", t);

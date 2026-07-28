@@ -164,7 +164,7 @@ public class SpeedrunState {
             // Integrated server (LAN): broadcast so other clients get the same sample
             SpeedrunNetwork.broadcastRunState(server);
         } else if (mc.player != null) {
-            SpeedrunNetwork.sendToServer(new SpeedrunNetwork.SaveObjectivesPacket(
+            SpeedrunNetworkClient.sendToServer(new SpeedrunNetwork.SaveObjectivesPacket(
                     new ArrayList<>(objectives), activeGameMode));
         }
     }
@@ -504,7 +504,7 @@ public class SpeedrunState {
                             }
                         });
                     } else if (mc.player.connection != null) {
-                        SpeedrunNetwork.sendToServer(new SpeedrunNetwork.ClaimFinishPacket(time));
+                        SpeedrunNetworkClient.sendToServer(new SpeedrunNetwork.ClaimFinishPacket(time));
                     } else {
                         finishClaimPending = false;
                         objectivesCompleted = true;

@@ -210,7 +210,7 @@ public class HudConfigScreen extends Screen {
         }
     }
 
-    private void adjustDouble(net.neoforged.neoforge.common.ModConfigSpec.DoubleValue config, double delta) {
+    private void adjustDouble(Config.DoubleValue config, double delta) {
         double current = config.get();
         double next = Math.round((current + delta) * 10.0) / 10.0;
         if (next < 0.5) next = 0.5;

@@ -155,5 +155,15 @@
   "gui.examplemod.cmd_main_menu": "Returning to main menu...",
   "gui.examplemod.cmd_reset_world": "Resetting world...",
   "gui.examplemod.cmd_status": "Time: %s - Status: %s",
-  "gui.examplemod.cmd_no_objectives": "No active objectives. Use /speedrun wheel to start!"
+  "gui.examplemod.cmd_no_objectives": "No active objectives. Use /speedrun wheel to start!",
+  "chat.examplemod.run_finished": "★ %s finished the speedrun in %s!",
+  "gui.examplemod.mode.cooperative": "Cooperative",
+  "gui.examplemod.mode.cooperative.desc": "All players win together",
+  "gui.examplemod.mode.challenge": "Challenge (VS)",
+  "gui.examplemod.mode.challenge.desc": "First to finish wins",
+  "gui.examplemod.winner_label": "Winner: %s",
+  "gui.examplemod.defeat": "Defeat",
+  "gui.examplemod.defeat_title": "DEFEAT",
+  "gui.examplemod.defeat_subtitle": "Another player finished first!",
+  "gui.examplemod.config.game_mode": "Game Mode: %s"
 }

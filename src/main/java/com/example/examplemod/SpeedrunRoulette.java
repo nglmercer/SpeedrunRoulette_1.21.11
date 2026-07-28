@@ -69,29 +69,14 @@ public class SpeedrunRoulette implements ModInitializer {
         SpeedrunWorldData data = SpeedrunWorldData.get(server);
         List<Objective> objs = data.getObjectives();
         String advId = advancement.id().toString();
-        for (Objective obj : objs) {
+        for (int i = 0; i < objs.size(); i++) {
+            Objective obj = objs.get(i);
             if (obj.getType() == Objective.Type.ADVANCEMENT && advId.equals(obj.getAdvancementId())) {
-                LOGGER.info("Advancement completed: " + advId + " by " + player.getGameProfile().name());
+                LOGGER.info("Advancement completed: {} by {}", advId, player.getGameProfile().name());
 
-                // Cooperative: share advancement progress with the whole team.
-                // Challenge: each player must earn the advancement themselves.
                 if (data.getGameMode() == SpeedrunGameMode.COOPERATIVE) {
-                    obj.setForceCompleted(true);
-                    data.setObjectives(objs);
+                    data.updateForceCompleted(i, true);
                     SpeedrunNetwork.broadcastRunState(server);
-                }
-
-                // In either mode, if this player now has all objectives, claim finish.
-                boolean allDone = true;
-                for (Objective o : objs) {
-                    if (!o.isCompleted(player)) {
-                        allDone = false;
-                        break;
-                    }
-                }
-                if (allDone && !data.isRunFinished()) {
-                    // Client will also claim with real timer; this covers pure-server edge cases
-                    SpeedrunNetwork.handleClaimFinish(player, "--:--");
                 }
                 break;
             }

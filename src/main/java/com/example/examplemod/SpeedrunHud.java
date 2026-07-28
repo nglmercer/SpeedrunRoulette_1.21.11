@@ -203,7 +203,13 @@ public class SpeedrunHud {
         if (showObjectivesList) {
             g.pose().translate(textX, currentY);
             g.pose().scale(textScale, textScale);
-            g.drawString(font, Component.translatable("gui.examplemod.objectives_label"), 0, 0, 0xFFAAAAAA, false);
+            String objLabel = Component.translatable("gui.examplemod.objectives_label").getString();
+            if (SpeedrunState.getActiveGameMode() == SpeedrunGameMode.CHALLENGE) {
+                Player p = Minecraft.getInstance().player;
+                long done = renderObjectives.stream().filter(o -> p != null && o.isCompleted(p)).count();
+                objLabel += " " + done + "/" + renderObjectives.size();
+            }
+            g.drawString(font, objLabel, 0, 0, 0xFFAAAAAA, false);
             g.pose().scale(1/textScale, 1/textScale);
             g.pose().translate(-textX, -currentY);
             currentY += (int)(12 * textScale);

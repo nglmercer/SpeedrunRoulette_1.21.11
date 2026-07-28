@@ -201,4 +201,11 @@ public class SpeedrunWorldData extends SavedData {
         finishTime = "";
         setDirty();
     }
+
+    public void updateForceCompleted(int index, boolean completed) {
+        if (index >= 0 && index < objectives.size()) {
+            objectives.get(index).setForceCompleted(completed);
+            setDirty();
+        }
+    }
 }

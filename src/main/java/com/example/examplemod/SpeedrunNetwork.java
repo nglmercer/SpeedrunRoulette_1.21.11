@@ -138,6 +138,10 @@ public class SpeedrunNetwork {
 
         data.setRunInfo(true, finishTime, summarizeObjectives(data.getObjectives()));
 
+        server.getPlayerList().broadcastSystemMessage(
+                net.minecraft.network.chat.Component.translatable("chat.examplemod.run_finished",
+                        name, finishTime).withStyle(net.minecraft.ChatFormatting.GOLD), false);
+
         RunFinishedPacket result = new RunFinishedPacket(
                 data.getGameMode(),
                 uuid,

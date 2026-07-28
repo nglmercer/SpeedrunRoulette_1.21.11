@@ -3,7 +3,7 @@
 A Minecraft NeoForge mod that adds randomized speedrun objectives with a spinning wheel, timer, HUD, and extensive customization.
 
 - **Minecraft:** 1.21.11
-- **Loader:** NeoForge 21.11.13+
+- **Loader:** NeoForge 21.11.44
 - **Java:** 21
 - **Author:** asus
 

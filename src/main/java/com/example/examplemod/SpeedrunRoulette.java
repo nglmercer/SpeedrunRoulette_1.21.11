@@ -27,11 +27,13 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.AdvancementEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import org.slf4j.Logger;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.server.level.ServerPlayer;
 import com.mojang.blaze3d.platform.InputConstants;
+import java.util.ArrayList;
 import java.util.List;
 
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
@@ -64,7 +66,8 @@ public class SpeedrunRoulette {
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerKeyMappings);
         modEventBus.addListener(this::registerGuiLayers);
-        
+        modEventBus.addListener(this::registerNetwork);
+
         // BLOCKS.register(modEventBus);
         // ITEMS.register(modEventBus);
         // CREATIVE_MODE_TABS.register(modEventBus);
@@ -78,6 +81,10 @@ public class SpeedrunRoulette {
 
     private void commonSetup(final FMLCommonSetupEvent event) {
         // Common setup logic if needed
+    }
+
+    private void registerNetwork(final RegisterPayloadHandlersEvent event) {
+        SpeedrunNetwork.register(event);
     }
 
     @SubscribeEvent
@@ -324,26 +331,22 @@ public class SpeedrunRoulette {
     public static class SpeedrunServerEvents {
         @SubscribeEvent
         public void onPlayerLoggedIn(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
-            /*
             if (event.getEntity() instanceof ServerPlayer player) {
                 net.minecraft.server.MinecraftServer server = null;
                 if (player.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
-                     server = serverLevel.getServer();
+                    server = serverLevel.getServer();
                 }
-                
-                if (server != null && server.isSingleplayer()) {
+
+                if (server != null) {
                     SpeedrunWorldData data = SpeedrunWorldData.get(server);
                     List<Objective> saved = data.getObjectives();
                     if (!saved.isEmpty()) {
-                        // Direct sync for Singleplayer
-                        SpeedrunState.setObjectives(saved, false);
+                        SpeedrunNetwork.sendToPlayer(new SpeedrunNetwork.SyncObjectivesPacket(saved), player);
                     } else {
-                        // Clear objectives for new world (or world with no saved objectives)
-                        SpeedrunState.clearObjectives();
+                        SpeedrunNetwork.sendToPlayer(new SpeedrunNetwork.SyncObjectivesPacket(new java.util.ArrayList<>()), player);
                     }
                 }
             }
-            */
         }
 
         @SubscribeEvent
@@ -360,24 +363,26 @@ public class SpeedrunRoulette {
 
         @SubscribeEvent
         public void onAdvancementProgress(AdvancementEvent.AdvancementProgressEvent event) {
-            /*
-            if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
-                List<Objective> objs = SpeedrunState.getObjectives();
-                if (objs != null) {
+            if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player && event.getAdvancementProgress().isDone()) {
+                net.minecraft.server.MinecraftServer server = null;
+                if (player.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+                    server = serverLevel.getServer();
+                }
+                if (server != null) {
+                    SpeedrunWorldData data = SpeedrunWorldData.get(server);
+                    List<Objective> objs = data.getObjectives();
+                    String advId = event.getAdvancement().id().toString();
                     for (Objective obj : objs) {
-                        if (obj.getType() == Objective.Type.ADVANCEMENT) {
-                            String advId = obj.getAdvancementId();
-                            if (advId != null && advId.equals(event.getAdvancement().id().toString())) {
-                                if (event.getAdvancementProgress().isDone()) {
-                                    LOGGER.info("Advancement completed: " + advId);
-                                    obj.setForceCompleted(true);
-                                }
-                            }
+                        if (obj.getType() == Objective.Type.ADVANCEMENT && advId.equals(obj.getAdvancementId())) {
+                            LOGGER.info("Advancement completed: " + advId);
+                            obj.setForceCompleted(true);
+                            data.setObjectives(objs);
+                            SpeedrunNetwork.sendToAllPlayers(new SpeedrunNetwork.SyncObjectivesPacket(new ArrayList<>(objs)));
+                            break;
                         }
                     }
                 }
             }
-            */
         }
     }
 }

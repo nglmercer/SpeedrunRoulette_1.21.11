@@ -26,6 +26,9 @@ public class SpeedrunWorldData extends SavedData {
 
     private static final String DATA_NAME = "speedrun_world_data";
     private final List<Objective> objectives = new ArrayList<>();
+    private boolean runInfoVictory = false;
+    private String runInfoTime = "";
+    private String runInfoObjective = "";
 
     public SpeedrunWorldData() {}
 
@@ -97,6 +100,13 @@ public class SpeedrunWorldData extends SavedData {
     public void setObjectives(List<Objective> objectives) {
         this.objectives.clear();
         this.objectives.addAll(objectives);
+        setDirty();
+    }
+
+    public void setRunInfo(boolean isVictory, String time, String objectiveName) {
+        this.runInfoVictory = isVictory;
+        this.runInfoTime = time;
+        this.runInfoObjective = objectiveName;
         setDirty();
     }
 }

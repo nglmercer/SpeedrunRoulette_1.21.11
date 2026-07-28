@@ -11,6 +11,7 @@ import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.minecraft.stats.Stats;
 import net.minecraft.resources.Identifier;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -115,10 +116,13 @@ public class SpeedrunState {
     }
     
     public static void saveObjectivesToWorld() {
-        net.minecraft.server.MinecraftServer server = Minecraft.getInstance().getSingleplayerServer();
+        Minecraft mc = Minecraft.getInstance();
+        net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
         if (server != null) {
             SpeedrunWorldData data = SpeedrunWorldData.get(server);
             data.setObjectives(objectives);
+        } else if (mc.player != null) {
+            SpeedrunNetwork.sendToServer(new SpeedrunNetwork.SaveObjectivesPacket(new ArrayList<>(objectives)));
         }
     }
 
@@ -236,38 +240,45 @@ public class SpeedrunState {
     }
 
     public static void saveRunInfo(boolean isVictory) {
-        net.minecraft.server.MinecraftServer server = Minecraft.getInstance().getSingleplayerServer();
-        if (server == null) return;
-        
-        String levelId = getLevelId(server);
-        if (levelId == null) return;
-        
-        File savesDir = Minecraft.getInstance().gameDirectory.toPath().resolve("saves").toFile();
-        File levelDir = new File(savesDir, levelId);
-        File infoFile = new File(levelDir, "speedrun_info.nbt");
-        
-        try {
-            CompoundTag tag = new CompoundTag();
-            tag.putBoolean("isVictory", isVictory);
-            tag.putString("time", SpeedrunRoulette.pendingVictoryTime != null ? SpeedrunRoulette.pendingVictoryTime : currentFormattedTime());
-            tag.putLong("timestamp", System.currentTimeMillis());
-            
-            // Save Objectives summary
-            List<Objective> objs = getObjectives();
-            if (!objs.isEmpty()) {
-                if (objs.size() > 1) {
-                    tag.putString("objectiveName", "Liste de " + objs.size() + " items");
-                } else {
-                    tag.putString("objectiveName", objs.get(0).getDisplayName().getString());
-                }
+        Minecraft mc = Minecraft.getInstance();
+        net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
+
+        String time = SpeedrunRoulette.pendingVictoryTime != null ? SpeedrunRoulette.pendingVictoryTime : currentFormattedTime();
+
+        String objectiveName;
+        List<Objective> objs = getObjectives();
+        if (!objs.isEmpty()) {
+            if (objs.size() > 1) {
+                objectiveName = "Liste de " + objs.size() + " items";
             } else {
-                tag.putString("objectiveName", "Speedrun");
+                objectiveName = objs.get(0).getDisplayName().getString();
             }
-            
-            NbtIo.writeCompressed(tag, infoFile.toPath());
-            SpeedrunRoulette.LOGGER.info("Saved run info to " + infoFile.getAbsolutePath());
-        } catch (Exception e) {
-            SpeedrunRoulette.LOGGER.error("Failed to save run info", e);
+        } else {
+            objectiveName = "Speedrun";
+        }
+
+        if (server != null) {
+            String levelId = getLevelId(server);
+            if (levelId == null) return;
+
+            File savesDir = mc.gameDirectory.toPath().resolve("saves").toFile();
+            File levelDir = new File(savesDir, levelId);
+            File infoFile = new File(levelDir, "speedrun_info.nbt");
+
+            try {
+                CompoundTag tag = new CompoundTag();
+                tag.putBoolean("isVictory", isVictory);
+                tag.putString("time", time);
+                tag.putLong("timestamp", System.currentTimeMillis());
+                tag.putString("objectiveName", objectiveName);
+
+                NbtIo.writeCompressed(tag, infoFile.toPath());
+                SpeedrunRoulette.LOGGER.info("Saved run info to " + infoFile.getAbsolutePath());
+            } catch (Exception e) {
+                SpeedrunRoulette.LOGGER.error("Failed to save run info", e);
+            }
+        } else if (mc.player != null) {
+            SpeedrunNetwork.sendToServer(new SpeedrunNetwork.SaveRunInfoPacket(isVictory, time, objectiveName));
         }
     }
 

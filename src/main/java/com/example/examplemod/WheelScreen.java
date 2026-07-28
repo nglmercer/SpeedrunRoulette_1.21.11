@@ -43,14 +43,16 @@ public class WheelScreen extends Screen {
     private void confirmSelection() {
         SpeedrunState.setObjectives(new ArrayList<>(winners));
         SpeedrunState.startTimer();
-        
-        // Save to World Data (Singleplayer Bridge)
-        net.minecraft.server.MinecraftServer server = Minecraft.getInstance().getSingleplayerServer();
+
+        Minecraft mc = Minecraft.getInstance();
+        net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
         if (server != null) {
             SpeedrunWorldData data = SpeedrunWorldData.get(server);
             data.setObjectives(winners);
+        } else if (mc.player != null) {
+            SpeedrunNetwork.sendToServer(new SpeedrunNetwork.SaveObjectivesPacket(new ArrayList<>(winners)));
         }
-        
+
         this.onClose();
     }
 

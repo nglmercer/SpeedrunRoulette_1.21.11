@@ -130,139 +130,74 @@ public class ObjectivePoolHelper {
             System.out.println("ObjectivePoolHelper: Found " + found + " items/blocks.");
         }
 
-        // 2. Advancements (Client Only or Server fallback)
+        // 2. Advancements
         if (enableAdvancements) {
-            List<AdvancementHolder> holders = new ArrayList<>();
+            boolean foundAdvancements = false;
+
             try {
                 Minecraft mc = Minecraft.getInstance();
 
-                if (mc.player != null && mc.player.connection != null) {
-                    for (net.minecraft.advancements.AdvancementNode node : mc.player.connection.getAdvancements().getTree().nodes()) {
-                        holders.add(node.holder());
+                // Primary: use server advancements (always fully loaded)
+                if (mc.getSingleplayerServer() != null) {
+                    for (AdvancementHolder holder : mc.getSingleplayerServer().getAdvancements().getAllAdvancements()) {
+                        if (holder.value().display().isPresent()) {
+                            net.minecraft.advancements.DisplayInfo display = holder.value().display().get();
+                            String id = holder.id().toString();
+                            if (id.startsWith("minecraft:recipes/")) continue;
+                            if (!filter.isEmpty() && !id.contains(filter)) continue;
+                            if (!includeBlacklisted && blacklist.contains(id)) continue;
+
+                            candidates.add(new Objective(
+                                id,
+                                display.getTitle(),
+                                display.getIcon(),
+                                Objective.Type.ADVANCEMENT,
+                                id,
+                                display.getDescription()
+                            ));
+                        }
                     }
-                } else if (mc.getSingleplayerServer() != null) {
-                    holders.addAll(mc.getSingleplayerServer().getAdvancements().getAllAdvancements());
                 }
 
-                for (AdvancementHolder holder : holders) {
-                    if (holder.value().display().isPresent()) {
-                         net.minecraft.advancements.DisplayInfo display = holder.value().display().get();
-                         
-                         String id = holder.id().toString();
-                         if (id.startsWith("minecraft:recipes/")) continue;
-                         if (!filter.isEmpty() && !id.contains(filter)) continue;
-                         if (!includeBlacklisted && blacklist.contains(id)) continue;
-                         
-                         candidates.add(new Objective(
-                             id,
-                             display.getTitle(),
-                             display.getIcon(),
-                             Objective.Type.ADVANCEMENT,
-                             id,
-                             display.getDescription()
-                         ));
+                // Secondary: use client connection advancements
+                if (mc.player != null && mc.player.connection != null) {
+                    for (net.minecraft.advancements.AdvancementNode node : mc.player.connection.getAdvancements().getTree().nodes()) {
+                        AdvancementHolder holder = node.holder();
+                        if (holder.value().display().isPresent()) {
+                            net.minecraft.advancements.DisplayInfo display = holder.value().display().get();
+                            String id = holder.id().toString();
+                            if (id.startsWith("minecraft:recipes/")) continue;
+                            if (!filter.isEmpty() && !id.contains(filter)) continue;
+                            if (!includeBlacklisted && blacklist.contains(id)) continue;
+
+                            // Avoid duplicates
+                            final String finalId = id;
+                            if (candidates.stream().anyMatch(o -> o.getType() == Objective.Type.ADVANCEMENT && o.getId().equals(finalId))) continue;
+
+                            candidates.add(new Objective(
+                                id,
+                                display.getTitle(),
+                                display.getIcon(),
+                                Objective.Type.ADVANCEMENT,
+                                id,
+                                display.getDescription()
+                            ));
+                        }
                     }
                 }
-                System.out.println("ObjectivePoolHelper: Found " + candidates.stream().filter(o -> o.getType() == Objective.Type.ADVANCEMENT).count() + " advancements.");
+
+                long count = candidates.stream().filter(o -> o.getType() == Objective.Type.ADVANCEMENT).count();
+                System.out.println("ObjectivePoolHelper: Found " + count + " advancements.");
+                foundAdvancements = count > 0;
             } catch (Exception e) {
-                // Ignore advancement loading errors
+                System.err.println("ObjectivePoolHelper: Error loading advancements: " + e.getMessage());
                 e.printStackTrace();
             }
 
-            // Check if we found any advancements
-            boolean foundAdvancements = candidates.stream().anyMatch(o -> o.getType() == Objective.Type.ADVANCEMENT);
-
-            // Fallback: Load from Vanilla Data (Main Menu / No World / Or if Client returned nothing useful)
+            // Fallback: Hardcoded List (ensures all advancements are present even if dynamic loading fails)
             if (!foundAdvancements) {
-                try {
-                    System.out.println("ObjectivePoolHelper: No advancements found from Client, scanning Vanilla Data...");
-                    PackResources vanilla = Minecraft.getInstance().getVanillaPackResources();
-                    
-                    vanilla.listResources(PackType.SERVER_DATA, "minecraft", "advancements", (location, streamSupplier) -> {
-                        String locationStr = location.toString();
-                        String namespace = "minecraft"; // We know it's minecraft namespace as we requested it
-                        String path = locationStr.contains(":") ? locationStr.split(":", 2)[1] : locationStr;
-                        
-                        // Remove "advancements/" prefix and ".json" suffix
-                        if (path.startsWith("advancements/")) path = path.substring("advancements/".length());
-                        if (path.endsWith(".json")) path = path.substring(0, path.length() - 5);
-                        
-                        String idStr = namespace + ":" + path;
-                        
-                        if (idStr.startsWith("minecraft:recipes/")) return;
-                        if (!filter.isEmpty() && !idStr.contains(filter)) return;
-                        if (!includeBlacklisted && blacklist.contains(idStr)) return;
-
-                        try (Reader reader = new java.io.InputStreamReader(streamSupplier.get())) {
-                            JsonElement json = JsonParser.parseReader(reader);
-                            if (json.isJsonObject() && json.getAsJsonObject().has("display")) {
-                                JsonObject display = json.getAsJsonObject().getAsJsonObject("display");
-                                
-                                // Title
-                                Component title = Component.literal(idStr);
-                                if (display.has("title")) {
-                                    try {
-                                        JsonElement titleJson = display.get("title");
-                                        Optional<Component> parsed = ComponentSerialization.CODEC.parse(JsonOps.INSTANCE, titleJson).result();
-                                        if (parsed.isPresent()) {
-                                            title = parsed.get();
-                                        } else {
-                                            title = Component.literal(titleJson.getAsString());
-                                        }
-                                    } catch (Exception ex) {
-                                    }
-                                }
-                                
-                                // Icon
-                                ItemStack icon = ItemStack.EMPTY;
-                                if (display.has("icon")) {
-                                    JsonObject iconObj = display.getAsJsonObject("icon");
-                                    if (iconObj.has("item")) {
-                                        String itemStr = iconObj.get("item").getAsString();
-                                        Item item = getItemById(itemStr);
-                                        if (item != Items.AIR) {
-                                            icon = new ItemStack(item);
-                                        }
-                                    }
-                                }
-
-                                // Description
-                                Component description = Component.empty();
-                                if (display.has("description")) {
-                                    try {
-                                        JsonElement descJson = display.get("description");
-                                        Optional<Component> parsed = ComponentSerialization.CODEC.parse(JsonOps.INSTANCE, descJson).result();
-                                        if (parsed.isPresent()) {
-                                            description = parsed.get();
-                                        } else {
-                                            description = Component.literal(descJson.getAsString());
-                                        }
-                                    } catch (Exception ex) {
-                                    }
-                                }
-                                
-                                if (!icon.isEmpty()) {
-                                     candidates.add(new Objective(
-                                         idStr,
-                                         title,
-                                         icon,
-                                         Objective.Type.ADVANCEMENT,
-                                         idStr,
-                                         description
-                                     ));
-                                }
-                            }
-                        } catch (Exception e) {
-                            // Ignore malformed files
-                        }
-                    });
-                    System.out.println("ObjectivePoolHelper: Found " + candidates.stream().filter(o -> o.getType() == Objective.Type.ADVANCEMENT).count() + " advancements via Vanilla Data.");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                System.out.println("ObjectivePoolHelper: No advancements found dynamically, using hardcoded list.");
             }
-                
-            // Final Fallback: Hardcoded List (to ensure all advancements are present even if dynamic loading fails)
             populateHardcodedAdvancements(candidates, blacklist, filter);
         }
         

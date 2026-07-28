@@ -11,6 +11,7 @@ import java.util.Map;
 
 public class SpeedrunState {
     private static List<Objective> objectives = new ArrayList<>();
+    private static List<Objective> keptObjectives = new ArrayList<>();
     private static boolean objectivesCompleted = false;
     private static boolean objectivesFresh = false;
     private static boolean objectivesLoaded = false;
@@ -157,18 +158,20 @@ public class SpeedrunState {
 
     public static void saveObjectivesToWorld() {
         Minecraft mc = Minecraft.getInstance();
-        // Prefer config mode when host starts a run; world data is source of truth after sync
         activeGameMode = Config.getGameMode();
         net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
         if (server != null) {
             SpeedrunWorldData data = SpeedrunWorldData.get(server);
             data.setGameMode(activeGameMode);
             data.setObjectives(objectives);
-            // Integrated server (LAN): broadcast so other clients get the same sample
             SpeedrunNetwork.broadcastRunState(server);
+            SpeedrunRoulette.LOGGER.info("[SaveObjectives] Saved {} objectives to world data (singleplayer)", objectives.size());
         } else if (mc.player != null) {
             SpeedrunNetworkClient.sendToServer(new SpeedrunNetwork.SaveObjectivesPacket(
                     new ArrayList<>(objectives), activeGameMode));
+            SpeedrunRoulette.LOGGER.info("[SaveObjectives] Sent {} objectives to server (multiplayer)", objectives.size());
+        } else {
+            SpeedrunRoulette.LOGGER.warn("[SaveObjectives] FAILED: no server and no player, {} objectives lost!", objectives.size());
         }
     }
 
@@ -224,16 +227,18 @@ public class SpeedrunState {
     // --- Lifecycle ---
 
     public static void prepareForRetry() {
+        keptObjectives = new ArrayList<>(objectives);
         keepObjectivesForNextRun = true;
         SpeedrunTimer.reset();
         SpeedrunSplits.reset();
         objectivesFresh = true;
         objectivesLoaded = true;
-        // Do NOT call saveObjectivesToWorld() here — server is already gone after disconnect.
+        SpeedrunRoulette.LOGGER.info("[Retry] Backed up {} objectives for next run", keptObjectives.size());
     }
 
     public static void prepareForNewGame() {
         keepObjectivesForNextRun = false;
+        keptObjectives.clear();
         clearObjectives();
         SpeedrunTimer.reset();
         SpeedrunSplits.reset();
@@ -460,9 +465,16 @@ public class SpeedrunState {
             loadObjectivesFromWorld();
         }
 
+        if (keepObjectivesForNextRun && objectives.isEmpty() && !keptObjectives.isEmpty()) {
+            SpeedrunRoulette.LOGGER.info("[AutoOpen] Restoring {} kept objectives from backup", keptObjectives.size());
+            objectives = new ArrayList<>(keptObjectives);
+            objectivesFresh = true;
+            objectivesLoaded = true;
+        }
+
         boolean hasObjs = !objectives.isEmpty();
-        SpeedrunRoulette.LOGGER.info("[AutoOpen] objectivesLoaded={}, hasObjs={}, keepForNext={}, fresh={}",
-            objectivesLoaded, hasObjs, keepObjectivesForNextRun, objectivesFresh);
+        SpeedrunRoulette.LOGGER.info("[AutoOpen] objectivesLoaded={}, hasObjs={}, keepForNext={}, fresh={}, keptBackup={}",
+            objectivesLoaded, hasObjs, keepObjectivesForNextRun, objectivesFresh, keptObjectives.size());
 
         if (!keepObjectivesForNextRun && hasObjs && !objectivesFresh) {
             SpeedrunRoulette.LOGGER.info("[AutoOpen] Clearing stale objectives");
@@ -475,9 +487,10 @@ public class SpeedrunState {
             openWheelNow();
         } else {
             if (keepObjectivesForNextRun && objectivesFresh) {
-                SpeedrunRoulette.LOGGER.info("[AutoOpen] Saving kept objectives to world");
+                SpeedrunRoulette.LOGGER.info("[AutoOpen] Saving {} kept objectives to world", objectives.size());
                 saveObjectivesToWorld();
                 objectivesFresh = false;
+                keptObjectives.clear();
             }
             if (!SpeedrunTimer.isRunning()) SpeedrunTimer.start();
             Minecraft.getInstance().player.displayClientMessage(

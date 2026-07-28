@@ -1,19 +1,13 @@
 package com.example.examplemod;
 
 import net.minecraft.client.Minecraft;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
 
-@EventBusSubscriber(modid = SpeedrunRoulette.MODID, value = Dist.CLIENT)
 public class SpeedrunE2ETestRunner {
     private static final boolean IS_E2E_TEST_ENABLED = System.getProperty("speedrun.e2eTest") != null;
     private static int testStep = 0;
     private static int stepTicks = 0;
 
-    @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick() {
         if (!IS_E2E_TEST_ENABLED) return;
 
         Minecraft mc = Minecraft.getInstance();

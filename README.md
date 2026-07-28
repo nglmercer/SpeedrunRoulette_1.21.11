@@ -1,9 +1,9 @@
 # Speedrun Roulette
 
-A Minecraft NeoForge mod that adds randomized speedrun objectives with a spinning wheel, timer, HUD, and extensive customization.
+A Minecraft Fabric mod that adds randomized speedrun objectives with a spinning wheel, timer, HUD, and extensive customization.
 
 - **Minecraft:** 1.21.11
-- **Loader:** NeoForge 21.11.44
+- **Loader:** Fabric (fabric-loader 0.19.3 + Fabric API 0.141.6+1.21.11)
 - **Java:** 21
 - **Author:** asus
 
@@ -95,9 +95,10 @@ English, French, German, Spanish, Italian, Portuguese (Brazil), Russian, Chinese
 
 ## Installation
 
-1. Install [NeoForge](https://neoforged.net/) for Minecraft 1.21.11
-2. Download the latest `.jar` from [Releases](../../releases)
-3. Place the `.jar` in your `mods` folder
+1. Install [Fabric](https://fabricmc.net/use/) for Minecraft 1.21.11
+2. Download the [Fabric API](https://modrinth.com/mod/fabric-api) mod
+3. Download the latest `.jar` from [Releases](../../releases)
+4. Place both `.jar` files in your `mods` folder
 
 ---
 
@@ -117,11 +118,11 @@ Build output: `build/libs/`
 
 All Rights Reserved
 
-Minecraft mapping names used under the [Mojang license](https://github.com/NeoForged/NeoForm/blob/main/Mojang.md).
+Minecraft mapping names used under the [Mojang license](https://github.com/Mojang/bedrock-protocol-docs/blob/main/LICENSE.md) (official Mojang mappings).
 
 ---
 
 ## Credits
 
-- [NeoForge Documentation](https://docs.neoforged.net/)
-- [NeoForged Discord](https://discord.neoforged.net/)
+- [FabricMC](https://fabricmc.net/)
+- [Fabric Documentation](https://docs.fabricmc.net/)

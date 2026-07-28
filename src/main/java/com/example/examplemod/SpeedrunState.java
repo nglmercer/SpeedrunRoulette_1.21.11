@@ -5,7 +5,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.client.event.ScreenEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -347,7 +346,7 @@ public class SpeedrunState {
             prepareForNewGame();
             SpeedrunAutoNav.autoTriggerCreateWorld = true;
             SpeedrunAutoNav.resetProgress();
-            SpeedrunRoulette.deleteWorldSave();
+            SpeedrunRouletteClient.deleteWorldSave();
         }
 
         // Clear all pending flags.
@@ -528,8 +527,8 @@ public class SpeedrunState {
 
     // --- Screen Init (delegates to SpeedrunAutoNav) ---
 
-    public static void onScreenInit(ScreenEvent.Init.Post event) {
-        SpeedrunAutoNav.onScreenInit(event);
+    public static void onScreenInit(net.minecraft.client.gui.screens.Screen screen) {
+        SpeedrunAutoNav.onScreenInit(screen);
     }
 
     // --- Facade methods for backward compatibility ---

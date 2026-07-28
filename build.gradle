@@ -47,12 +47,6 @@ java {
     withSourcesJar()
 }
 
-jar {
-    from("README.md") {
-        rename { "README_${project.archivesBaseName}.md" }
-    }
-}
-
 // Example configuration to allow publishing using the maven-publish plugin
 publishing {
     publications {

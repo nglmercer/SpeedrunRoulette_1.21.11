@@ -6,7 +6,8 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.client.event.ScreenEvent;
+import net.minecraft.client.gui.screens.Screen;
+import net.fabricmc.fabric.api.client.screen.v1.Screens;
 
 public class SpeedrunAutoNav {
     public static boolean autoTriggerCreateWorld = false;
@@ -49,10 +50,10 @@ public class SpeedrunAutoNav {
             || mc.screen instanceof net.minecraft.client.gui.screens.ProgressScreen;
     }
 
-    public static void onScreenInit(ScreenEvent.Init.Post event) {
-        if (event.getScreen() instanceof TitleScreen) {
-            event.addListener(Button.builder(Component.translatable("gui.examplemod.speedrun_config_button"), (btn) -> {
-                Minecraft.getInstance().setScreen(new SpeedrunConfigScreen(event.getScreen()));
+    public static void onScreenInit(Screen screen) {
+        if (screen instanceof TitleScreen) {
+            Screens.getButtons(screen).add(Button.builder(Component.translatable("gui.examplemod.speedrun_config_button"), (btn) -> {
+                Minecraft.getInstance().setScreen(new SpeedrunConfigScreen(screen));
             }).bounds(10, 10, 100, 20).build());
 
             // Handle any pending transition that was triggered before we reached TitleScreen.
@@ -62,9 +63,9 @@ public class SpeedrunAutoNav {
             }
         }
 
-        if (event.getScreen() instanceof SelectWorldScreen) {
+        if (screen instanceof SelectWorldScreen) {
             if (autoTriggerCreateWorld && canAutoNavigateMenus()) {
-                for (net.minecraft.client.gui.components.events.GuiEventListener child : event.getScreen().children()) {
+                for (net.minecraft.client.gui.components.events.GuiEventListener child : screen.children()) {
                     if (child instanceof Button btn) {
                         if (btn.getMessage().equals(Component.translatable("selectWorld.create"))) {
                             SpeedrunRoulette.LOGGER.info("SpeedrunState: Clicking 'Create New World'");
@@ -81,9 +82,9 @@ public class SpeedrunAutoNav {
             }
         }
 
-        if (event.getScreen() instanceof CreateWorldScreen screen) {
+        if (screen instanceof CreateWorldScreen createWorldScreen) {
             if (autoTriggerCreateWorld && canAutoNavigateMenus()) {
-                tryAutoPressCreateWorld(screen);
+                tryAutoPressCreateWorld(createWorldScreen);
             }
         }
     }

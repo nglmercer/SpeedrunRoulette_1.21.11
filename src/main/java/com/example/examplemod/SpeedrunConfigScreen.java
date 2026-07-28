@@ -1,5 +1,6 @@
 package com.example.examplemod;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -98,9 +99,8 @@ public class SpeedrunConfigScreen extends Screen {
     public static void applyForcedLanguage() {
         Minecraft mc = Minecraft.getInstance();
         String forced = Config.FORCED_LANGUAGE.get();
-        if (forced != null && !forced.isEmpty() && mc.options != null) {
-            mc.options.language(forced);
-            mc.options.save();
+        if (forced != null && !forced.isEmpty()) {
+            mc.getLanguageManager().setSelected(forced);
             mc.getLanguageManager().onResourceManagerReload(mc.getResourceManager());
         }
     }

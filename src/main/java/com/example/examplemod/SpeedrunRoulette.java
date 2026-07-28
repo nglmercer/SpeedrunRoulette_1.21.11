@@ -58,9 +58,10 @@ public class SpeedrunRoulette {
     public static boolean pendingGiveUp = false;
     public static boolean pendingReplay = false;
     public static boolean pendingNewRun = false;
-    
+
     // Auto-open wheel state
     public static boolean hasCheckedAutoOpen = false;
+    private static boolean languageApplied = false;
 
     public SpeedrunRoulette(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(this::commonSetup);
@@ -117,6 +118,12 @@ public class SpeedrunRoulette {
     public static class SpeedrunClientEvents {
         @SubscribeEvent
         public void onClientTick(ClientTickEvent.Post event) {
+            // Apply forced language on first tick
+            if (!languageApplied) {
+                languageApplied = true;
+                SpeedrunConfigScreen.applyForcedLanguage();
+            }
+
             // Auto-open wheel logic
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null && !SpeedrunRoulette.hasCheckedAutoOpen) {
@@ -171,9 +178,6 @@ public class SpeedrunRoulette {
 
         @SubscribeEvent
         public void onScreenInit(ScreenEvent.Init.Post event) {
-            // Button logic removed in favor of icon in list
-            
-            // Handle State Transitions when returning to Title Screen
             if (event.getScreen() instanceof net.minecraft.client.gui.screens.TitleScreen) {
                 if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun) {
                     LOGGER.info("TitleScreen: Preparing for New Game (Clear Objectives)");
@@ -182,14 +186,15 @@ public class SpeedrunRoulette {
                     LOGGER.info("TitleScreen: Preparing for Retry (Keep Objectives)");
                     SpeedrunState.prepareForRetry();
                 }
-                
-                // Reset Flags
+
                 if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay) {
                     SpeedrunRoulette.pendingGiveUp = false;
                     SpeedrunRoulette.pendingNewRun = false;
                     SpeedrunRoulette.pendingReplay = false;
                     SpeedrunRoulette.pendingVictoryTime = null;
                     SpeedrunRoulette.pendingVictoryObjectiveName = null;
+                    SpeedrunRoulette.hasCheckedAutoOpen = false;
+                    SpeedrunState.finishTransition();
                 }
             }
 

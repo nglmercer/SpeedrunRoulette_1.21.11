@@ -405,9 +405,9 @@ public class SpeedrunState {
 
     public static void onClientTick() {
         Minecraft mc = Minecraft.getInstance();
-        
+
         // Safety: If we are in the process of giving up or restarting, do NOT run tick logic
-        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingNewRun) {
+        if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingNewRun || isTransitioning) {
             return;
         }
 
@@ -418,22 +418,18 @@ public class SpeedrunState {
 
         // --- NEW SAFETY CHECK ---
         // If the game is paused (saving/disconnecting), DO NOT access server level or player data heavily
-        // 'mc.isPaused()' is for in-game pause menu.
-        // We need to check if connection is active and world is loaded.
         if (mc.level == null || mc.player == null) return;
-        
+
         // Also check if we are in the process of disconnecting/saving
-        // ReceivingLevelScreen in 1.21 is ReceivingLevelScreen.
-        // But maybe it's not imported or name changed?
-        // Let's use string check for safety or just check LevelLoadingScreen
         if (mc.screen instanceof net.minecraft.client.gui.screens.LevelLoadingScreen) {
             return;
         }
-        // Also check "Saving Level" screen which is GenericMessageScreen usually.
         if (mc.screen instanceof net.minecraft.client.gui.screens.GenericMessageScreen) {
-            // Usually this is the "Saving Level" screen
-             return;
+            return;
         }
+
+        // Additional safety: check if connection is still valid
+        if (mc.player.connection == null) return;
 
         if (mc.player != null) {
              // Manual Stats Tracking (Client Side)
@@ -508,48 +504,45 @@ public class SpeedrunState {
                      }
                  }
                  
-                 // 4. Structures via Server Level (Singleplayer Only - More reliable)
-                 if (mc.player.tickCount % 20 == 0) {
-                     net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
-                     // STRICT CHECK: Server must be running and NOT shutting down
-                     if (server != null && server.isRunning() && !server.isStopped()) {
-                         try {
-                             net.minecraft.server.level.ServerPlayer serverPlayer = server.getPlayerList().getPlayer(mc.player.getUUID());
-                             if (serverPlayer != null) {
-                                 net.minecraft.server.level.ServerLevel level = (net.minecraft.server.level.ServerLevel) serverPlayer.level();
-                                 net.minecraft.core.BlockPos pos = serverPlayer.blockPosition();
-                                 
-                                 // Check if chunk is loaded to prevent forcing load during shutdown
-                                 if (level.hasChunkAt(pos)) {
-                                      checkStructure(level, pos, BuiltinStructures.END_CITY, Component.translatable("gui.examplemod.split.end_city").getString());
-                                      checkStructure(level, pos, BuiltinStructures.ANCIENT_CITY, Component.translatable("gui.examplemod.split.ancient_city").getString());
-                                      checkStructure(level, pos, BuiltinStructures.SHIPWRECK, Component.translatable("gui.examplemod.split.shipwreck").getString());
-                                      checkStructure(level, pos, BuiltinStructures.OCEAN_MONUMENT, Component.translatable("gui.examplemod.split.ocean_monument").getString());
-                                      checkStructure(level, pos, BuiltinStructures.PILLAGER_OUTPOST, Component.translatable("gui.examplemod.split.pillager_outpost").getString());
-                                      checkStructure(level, pos, BuiltinStructures.BURIED_TREASURE, Component.translatable("gui.examplemod.split.buried_treasure").getString());
-                                      checkStructure(level, pos, BuiltinStructures.DESERT_PYRAMID, Component.translatable("gui.examplemod.split.desert_pyramid").getString());
-                                      checkStructure(level, pos, BuiltinStructures.FORTRESS, Component.translatable("gui.examplemod.split.fortress_found").getString());
-                                      checkStructure(level, pos, BuiltinStructures.BASTION_REMNANT, Component.translatable("gui.examplemod.split.bastion_found").getString());
-                                      checkStructure(level, pos, BuiltinStructures.STRONGHOLD, Component.translatable("gui.examplemod.split.stronghold_found").getString());
-                                      checkStructure(level, pos, BuiltinStructures.IGLOO, Component.translatable("gui.examplemod.split.igloo").getString());
-                                      checkStructure(level, pos, BuiltinStructures.JUNGLE_TEMPLE, Component.translatable("gui.examplemod.split.jungle_temple").getString());
-                                      checkStructure(level, pos, BuiltinStructures.SWAMP_HUT, Component.translatable("gui.examplemod.split.swamp_hut").getString());
-                                      checkStructure(level, pos, BuiltinStructures.WOODLAND_MANSION, Component.translatable("gui.examplemod.split.woodland_mansion").getString());
-                                      checkStructure(level, pos, BuiltinStructures.NETHER_FOSSIL, Component.translatable("gui.examplemod.split.nether_fossil").getString());
-                                      
-                                      // 1.21 Trial Chambers
-                                      try {
-                                          checkStructure(level, pos, BuiltinStructures.TRIAL_CHAMBERS, Component.translatable("gui.examplemod.split.trial_chamber").getString());
-                                      } catch (NoSuchFieldError | NoClassDefFoundError e) {
-                                          // Ignore
-                                      }
-                                 }
-                             }
-                         } catch (Exception e) {
-                             // Ignore errors during server access (e.g. shutdown)
-                         }
+                  // 4. Structures via Server Level (Singleplayer Only - More reliable)
+                  if (mc.player.tickCount % 20 == 0 && !isTransitioning) {
+                      try {
+                          net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
+                          if (server != null && server.isRunning() && !server.isStopped()) {
+                              net.minecraft.server.level.ServerPlayer serverPlayer = server.getPlayerList().getPlayer(mc.player.getUUID());
+                              if (serverPlayer != null && serverPlayer.level() != null) {
+                                  net.minecraft.server.level.ServerLevel level = (net.minecraft.server.level.ServerLevel) serverPlayer.level();
+                                  net.minecraft.core.BlockPos pos = serverPlayer.blockPosition();
+
+                                  if (level.hasChunkAt(pos)) {
+                                       checkStructure(level, pos, BuiltinStructures.END_CITY, Component.translatable("gui.examplemod.split.end_city").getString());
+                                       checkStructure(level, pos, BuiltinStructures.ANCIENT_CITY, Component.translatable("gui.examplemod.split.ancient_city").getString());
+                                       checkStructure(level, pos, BuiltinStructures.SHIPWRECK, Component.translatable("gui.examplemod.split.shipwreck").getString());
+                                       checkStructure(level, pos, BuiltinStructures.OCEAN_MONUMENT, Component.translatable("gui.examplemod.split.ocean_monument").getString());
+                                       checkStructure(level, pos, BuiltinStructures.PILLAGER_OUTPOST, Component.translatable("gui.examplemod.split.pillager_outpost").getString());
+                                       checkStructure(level, pos, BuiltinStructures.BURIED_TREASURE, Component.translatable("gui.examplemod.split.buried_treasure").getString());
+                                       checkStructure(level, pos, BuiltinStructures.DESERT_PYRAMID, Component.translatable("gui.examplemod.split.desert_pyramid").getString());
+                                       checkStructure(level, pos, BuiltinStructures.FORTRESS, Component.translatable("gui.examplemod.split.fortress_found").getString());
+                                       checkStructure(level, pos, BuiltinStructures.BASTION_REMNANT, Component.translatable("gui.examplemod.split.bastion_found").getString());
+                                       checkStructure(level, pos, BuiltinStructures.STRONGHOLD, Component.translatable("gui.examplemod.split.stronghold_found").getString());
+                                       checkStructure(level, pos, BuiltinStructures.IGLOO, Component.translatable("gui.examplemod.split.igloo").getString());
+                                       checkStructure(level, pos, BuiltinStructures.JUNGLE_TEMPLE, Component.translatable("gui.examplemod.split.jungle_temple").getString());
+                                       checkStructure(level, pos, BuiltinStructures.SWAMP_HUT, Component.translatable("gui.examplemod.split.swamp_hut").getString());
+                                       checkStructure(level, pos, BuiltinStructures.WOODLAND_MANSION, Component.translatable("gui.examplemod.split.woodland_mansion").getString());
+                                       checkStructure(level, pos, BuiltinStructures.NETHER_FOSSIL, Component.translatable("gui.examplemod.split.nether_fossil").getString());
+
+                                       try {
+                                           checkStructure(level, pos, BuiltinStructures.TRIAL_CHAMBERS, Component.translatable("gui.examplemod.split.trial_chamber").getString());
+                                       } catch (NoSuchFieldError | NoClassDefFoundError e) {
+                                           // Ignore
+                                       }
+                                  }
+                              }
+                          }
+                      } catch (Exception e) {
+                          // Ignore errors during server access (e.g. shutdown)
                       }
-                  }
+                   }
               }
              
              if (timerRunning && !manualPaused && !mc.isPaused()) {

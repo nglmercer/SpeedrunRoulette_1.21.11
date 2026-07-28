@@ -47,11 +47,20 @@ public class SpeedrunCommands {
                     })
                 )
 
-                // /speedrun retry - Retry with same objectives
+                // /speedrun retry - Retry with same objectives, same world
                 .then(Commands.literal("retry")
                     .executes(context -> {
                         context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_retry"), false);
                         net.minecraft.client.Minecraft.getInstance().execute(SpeedrunState::beginRetryAndDisconnect);
+                        return 1;
+                    })
+                )
+
+                // /speedrun retrynewseed - Retry with same objectives, new world
+                .then(Commands.literal("retrynewseed")
+                    .executes(context -> {
+                        context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_retry_new_seed"), false);
+                        net.minecraft.client.Minecraft.getInstance().execute(SpeedrunState::beginRetryNewSeedAndDisconnect);
                         return 1;
                     })
                 )
@@ -61,6 +70,15 @@ public class SpeedrunCommands {
                     .executes(context -> {
                         context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_give_up"), false);
                         net.minecraft.client.Minecraft.getInstance().execute(SpeedrunState::beginGiveUpAndDisconnect);
+                        return 1;
+                    })
+                )
+
+                // /speedrun mainmenu - Return to main menu
+                .then(Commands.literal("mainmenu")
+                    .executes(context -> {
+                        context.getSource().sendSuccess(() -> Component.translatable("gui.examplemod.cmd_main_menu"), false);
+                        net.minecraft.client.Minecraft.getInstance().execute(SpeedrunState::beginMainMenuAndDisconnect);
                         return 1;
                     })
                 )

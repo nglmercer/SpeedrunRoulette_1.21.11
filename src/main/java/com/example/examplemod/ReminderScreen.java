@@ -17,24 +17,39 @@ public class ReminderScreen extends Screen {
     protected void init() {
         int buttonWidth = 200;
         int buttonHeight = 20;
-        int spacing = 10;
-        
-        // Button "Fermer" (Close)
-        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.close"), (button) -> {
-            this.onClose();
-        }).bounds(this.width / 2 - buttonWidth / 2, this.height - 40, buttonWidth, buttonHeight).build());
-        
-        // Button "Abandonner (Nouvel Objectif)"
-        // Uses same logic as VictoryScreen "Nouvelle Run"
-        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.give_up"), (button) -> {
-            if (SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun || SpeedrunRoulette.pendingReplay) {
-                return;
-            }
+        int spacing = 24;
+        int startY = this.height - 120;
 
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.retry_same_seed"), (button) -> {
+            if (isTransitionPending()) return;
+            button.active = false;
+            SpeedrunRoulette.LOGGER.info("Retry Same Seed clicked.");
+            SpeedrunState.beginRetryAndDisconnect();
+        }).bounds(this.width / 2 - buttonWidth / 2, startY, buttonWidth, buttonHeight).build());
+
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.retry_new_seed"), (button) -> {
+            if (isTransitionPending()) return;
+            button.active = false;
+            SpeedrunRoulette.LOGGER.info("Retry New Seed clicked.");
+            SpeedrunState.beginRetryNewSeedAndDisconnect();
+        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing, buttonWidth, buttonHeight).build());
+
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.give_up"), (button) -> {
+            if (isTransitionPending()) return;
             button.active = false;
             SpeedrunRoulette.LOGGER.info("Give Up clicked.");
-            SpeedrunState.beginGiveUpAndDisconnect();
-        }).bounds(this.width / 2 - buttonWidth / 2, this.height - 40 - buttonHeight - spacing, buttonWidth, buttonHeight).build());
+            SpeedrunState.beginNewRunAndDisconnect();
+        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * 2, buttonWidth, buttonHeight).build());
+
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.close"), (button) -> {
+            this.onClose();
+        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * 3, buttonWidth, buttonHeight).build());
+    }
+
+    private static boolean isTransitionPending() {
+        return SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun
+            || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingRetryNewSeed
+            || SpeedrunRoulette.pendingReset || SpeedrunRoulette.pendingMainMenu;
     }
 
     @Override

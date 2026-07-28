@@ -14,31 +14,32 @@ public class VictoryScreen extends Screen {
     protected void init() {
         int buttonWidth = 200;
         int buttonHeight = 20;
-        int spacing = 24;
-        int startY = this.height - 110; // Moved up to fit 4th button
+        int spacing = 22;
+        int startY = this.height - 135;
 
-        // Rejouer (Même Objectif)
-        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.play_again"), (btn) -> {
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.retry_same_seed"), (btn) -> {
             SpeedrunState.saveRunInfo(true);
             SpeedrunState.beginRetryAndDisconnect();
         }).bounds(this.width / 2 - buttonWidth / 2, startY, buttonWidth, buttonHeight).build());
 
-        // Nouvelle Run (Nouveaux Objectifs)
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.retry_new_seed"), (btn) -> {
+            SpeedrunState.saveRunInfo(true);
+            SpeedrunState.beginRetryNewSeedAndDisconnect();
+        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing, buttonWidth, buttonHeight).build());
+
         this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.new_run"), (btn) -> {
             SpeedrunState.saveRunInfo(true);
             SpeedrunState.beginNewRunAndDisconnect();
-        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing, buttonWidth, buttonHeight).build());
-
-        // Menu Principal
-        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.main_menu"), (btn) -> {
-            SpeedrunState.saveRunInfo(true);
-            SpeedrunState.beginGiveUpAndDisconnect();
         }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * 2, buttonWidth, buttonHeight).build());
 
-        // Rester en Jeu (Fermer Menu)
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.main_menu"), (btn) -> {
+            SpeedrunState.saveRunInfo(true);
+            SpeedrunState.beginMainMenuAndDisconnect();
+        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * 3, buttonWidth, buttonHeight).build());
+
         this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.stay_in_game"), (btn) -> {
             this.onClose();
-        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * 3, buttonWidth, buttonHeight).build());
+        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * 4, buttonWidth, buttonHeight).build());
     }
 
 

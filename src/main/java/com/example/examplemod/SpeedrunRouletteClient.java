@@ -96,9 +96,11 @@ public class SpeedrunRouletteClient implements ClientModInitializer {
         }
 
         // Auto-Navigation for New Run — only after the integrated server is fully gone.
-        if (SpeedrunAutoNav.autoTriggerCreateWorld && SpeedrunAutoNav.canAutoNavigateMenus()) {
+        if ((SpeedrunAutoNav.autoTriggerCreateWorld || SpeedrunAutoNav.autoReEnterWorld) && SpeedrunAutoNav.canAutoNavigateMenus()) {
             SpeedrunAutoNav.tickAutoNavFromTitle(mc);
         }
+
+        SpeedrunAutoNav.tickAutoReEnter(mc);
 
         // Skip input while saving/disconnecting so we don't open menus on top of "Saving world".
         if (!SpeedrunAutoNav.isDisconnectingOrSaving()) {

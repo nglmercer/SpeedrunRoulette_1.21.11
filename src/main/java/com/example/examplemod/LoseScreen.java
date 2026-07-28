@@ -23,27 +23,32 @@ public class LoseScreen extends Screen {
     protected void init() {
         int buttonWidth = 200;
         int buttonHeight = 20;
-        int spacing = 24;
-        int startY = this.height - 110;
+        int spacing = 22;
+        int startY = this.height - 135;
 
-        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.play_again"), (btn) -> {
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.retry_same_seed"), (btn) -> {
             SpeedrunState.saveRunInfo(false);
             SpeedrunState.beginRetryAndDisconnect();
         }).bounds(this.width / 2 - buttonWidth / 2, startY, buttonWidth, buttonHeight).build());
 
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.retry_new_seed"), (btn) -> {
+            SpeedrunState.saveRunInfo(false);
+            SpeedrunState.beginRetryNewSeedAndDisconnect();
+        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing, buttonWidth, buttonHeight).build());
+
         this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.new_run"), (btn) -> {
             SpeedrunState.saveRunInfo(false);
             SpeedrunState.beginNewRunAndDisconnect();
-        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing, buttonWidth, buttonHeight).build());
+        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * 2, buttonWidth, buttonHeight).build());
 
         this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.main_menu"), (btn) -> {
             SpeedrunState.saveRunInfo(false);
-            SpeedrunState.beginGiveUpAndDisconnect();
-        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * 2, buttonWidth, buttonHeight).build());
+            SpeedrunState.beginMainMenuAndDisconnect();
+        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * 3, buttonWidth, buttonHeight).build());
 
         this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.stay_in_game"), (btn) -> {
             this.onClose();
-        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * 3, buttonWidth, buttonHeight).build());
+        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * 4, buttonWidth, buttonHeight).build());
     }
 
     @Override

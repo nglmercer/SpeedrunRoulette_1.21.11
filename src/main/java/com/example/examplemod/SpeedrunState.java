@@ -281,10 +281,42 @@ public class SpeedrunState {
         }
     }
 
+    public static void beginRetryNewSeedAndDisconnect() {
+        if (anyPendingOrTransitioning()) return;
+
+        SpeedrunRoulette.pendingRetryNewSeed = true;
+        isTransitioning = true;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level != null) {
+            trySaveRunInfo(false);
+            captureLevelId(mc);
+            mc.disconnect(new TitleScreen(), false);
+        } else {
+            handleTitleScreenArrival(mc);
+        }
+    }
+
     public static void beginNewRunAndDisconnect() {
         if (anyPendingOrTransitioning()) return;
 
         SpeedrunRoulette.pendingNewRun = true;
+        isTransitioning = true;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level != null) {
+            trySaveRunInfo(false);
+            captureLevelId(mc);
+            mc.disconnect(new TitleScreen(), false);
+        } else {
+            handleTitleScreenArrival(mc);
+        }
+    }
+
+    public static void beginMainMenuAndDisconnect() {
+        if (anyPendingOrTransitioning()) return;
+
+        SpeedrunRoulette.pendingMainMenu = true;
         isTransitioning = true;
 
         Minecraft mc = Minecraft.getInstance();
@@ -321,26 +353,39 @@ public class SpeedrunState {
     static void handleTitleScreenArrival(Minecraft mc) {
         boolean startingNew = SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun;
         boolean startingRetry = SpeedrunRoulette.pendingReplay;
+        boolean startingRetryNewSeed = SpeedrunRoulette.pendingRetryNewSeed;
         boolean startingReset = SpeedrunRoulette.pendingReset;
+        boolean startingMainMenu = SpeedrunRoulette.pendingMainMenu;
 
-        if (!startingNew && !startingRetry && !startingReset) {
-            // Nothing pending — just ensure transitioning is cleared.
+        if (!startingNew && !startingRetry && !startingRetryNewSeed && !startingReset && !startingMainMenu) {
             isTransitioning = false;
             return;
         }
 
-        SpeedrunRoulette.LOGGER.info("TitleScreen arrival: pendingNew={}, pendingRetry={}, pendingReset={}",
-            startingNew, startingRetry, startingReset);
+        SpeedrunRoulette.LOGGER.info("TitleScreen arrival: pendingNew={}, pendingRetry={}, pendingRetryNewSeed={}, pendingReset={}, pendingMainMenu={}",
+            startingNew, startingRetry, startingRetryNewSeed, startingReset, startingMainMenu);
 
-        if (startingNew) {
+        if (startingMainMenu) {
+            SpeedrunRoulette.LOGGER.info("TitleScreen: Main Menu (no auto-nav)");
+            prepareForNewGame();
+            isTransitioning = false;
+        } else if (startingRetry) {
+            SpeedrunRoulette.LOGGER.info("TitleScreen: Preparing for Retry Same Seed");
+            prepareForRetry();
+            SpeedrunAutoNav.autoReEnterWorld = true;
+            SpeedrunAutoNav.targetLevelId = SpeedrunRoulette.pendingLevelId;
+            SpeedrunAutoNav.autoTriggerCreateWorld = false;
+            SpeedrunAutoNav.resetProgress();
+        } else if (startingRetryNewSeed) {
+            SpeedrunRoulette.LOGGER.info("TitleScreen: Preparing for Retry New Seed");
+            prepareForRetry();
+            SpeedrunAutoNav.autoTriggerCreateWorld = true;
+            SpeedrunAutoNav.resetProgress();
+        } else if (startingNew) {
             SpeedrunRoulette.LOGGER.info("TitleScreen: Preparing for New Game");
             prepareForNewGame();
             SpeedrunAutoNav.autoTriggerCreateWorld = true;
             SpeedrunAutoNav.resetProgress();
-        } else if (startingRetry) {
-            SpeedrunRoulette.LOGGER.info("TitleScreen: Preparing for Retry");
-            prepareForRetry();
-            SpeedrunAutoNav.autoTriggerCreateWorld = false;
         } else {
             SpeedrunRoulette.LOGGER.info("TitleScreen: Preparing for Reset (Delete World + New)");
             prepareForNewGame();
@@ -349,27 +394,23 @@ public class SpeedrunState {
             SpeedrunRouletteClient.deleteWorldSave();
         }
 
-        // Clear all pending flags.
         SpeedrunRoulette.pendingGiveUp = false;
         SpeedrunRoulette.pendingNewRun = false;
         SpeedrunRoulette.pendingReplay = false;
+        SpeedrunRoulette.pendingRetryNewSeed = false;
         SpeedrunRoulette.pendingReset = false;
+        SpeedrunRoulette.pendingMainMenu = false;
         SpeedrunRoulette.pendingVictoryTime = null;
         SpeedrunRoulette.pendingVictoryObjectiveName = null;
         SpeedrunRoulette.hasCheckedAutoOpen = false;
 
-        // Finish transition: if autoTriggerCreateWorld is set, finishTransition is
-        // called later when the CreateWorldScreen auto-press completes.
-        if (!SpeedrunAutoNav.autoTriggerCreateWorld) {
+        if (!SpeedrunAutoNav.autoTriggerCreateWorld && !SpeedrunAutoNav.autoReEnterWorld) {
             finishTransition();
         } else {
-            // isTransitioning stays true until CreateWorldScreen press; but
-            // reset the nav progress so AutoNav can proceed.
-            isTransitioning = false; // Let AutoNav proceed without deadlocking.
+            isTransitioning = false;
             SpeedrunAutoNav.resetProgress();
         }
 
-        // Ensure the title screen is shown if not already.
         if (!(mc.screen instanceof TitleScreen)) {
             mc.setScreen(new TitleScreen());
         }
@@ -377,7 +418,8 @@ public class SpeedrunState {
 
     private static boolean anyPendingOrTransitioning() {
         return SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun
-            || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingReset
+            || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingRetryNewSeed
+            || SpeedrunRoulette.pendingReset || SpeedrunRoulette.pendingMainMenu
             || isTransitioning;
     }
 
@@ -392,11 +434,9 @@ public class SpeedrunState {
     }
 
     private static void captureLevelId(Minecraft mc) {
-        if (SpeedrunRoulette.pendingReset) {
-            net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
-            if (server != null) {
-                SpeedrunRoulette.pendingLevelId = SpeedrunRunInfo.getLevelId(server);
-            }
+        net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
+        if (server != null) {
+            SpeedrunRoulette.pendingLevelId = SpeedrunRunInfo.getLevelId(server);
         }
     }
 
@@ -429,6 +469,10 @@ public class SpeedrunState {
         if (!hasObjs) {
             openWheelNow();
         } else {
+            if (keepObjectivesForNextRun && objectivesFresh) {
+                saveObjectivesToWorld();
+                objectivesFresh = false;
+            }
             if (!SpeedrunTimer.isRunning()) SpeedrunTimer.start();
             Minecraft.getInstance().player.displayClientMessage(
                 Component.translatable("gui.examplemod.objectives_active"), true);

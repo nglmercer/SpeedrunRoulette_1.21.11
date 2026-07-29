@@ -53,6 +53,7 @@ public class SpeedrunState {
         if (save) {
             saveObjectivesToWorld();
         }
+        SpeedrunObjectiveStorage.save(objectives, activeGameMode);
     }
 
     public static void setObjectives(List<Objective> objs) {
@@ -192,6 +193,7 @@ public class SpeedrunState {
         finishClaimPending = false;
         lastWinnerName = "";
         lastWinnerUuid = "";
+        SpeedrunObjectiveStorage.clear();
     }
 
     public static boolean hasActiveObjectives() {
@@ -214,6 +216,7 @@ public class SpeedrunState {
             objectivesCompleted = false;
             objectivesLoaded = true;
             autoOpenDelayTicks = 0;
+            SpeedrunObjectiveStorage.save(objectives, activeGameMode);
             return;
         }
 
@@ -231,7 +234,15 @@ public class SpeedrunState {
             objectivesLoaded = true;
             autoOpenDelayTicks = 0;
         } else {
-        //    SpeedrunRoulette.LOGGER.warn("[LoadObjectives] No singleplayer server available");
+            List<Objective> persisted = SpeedrunObjectiveStorage.load();
+            if (!persisted.isEmpty()) {
+                SpeedrunRoulette.LOGGER.info("[LoadObjectives] Restored {} objectives from persistent storage", persisted.size());
+                objectives = persisted;
+                objectivesFresh = true;
+                objectivesCompleted = false;
+                objectivesLoaded = true;
+                autoOpenDelayTicks = 0;
+            }
         }
     }
 

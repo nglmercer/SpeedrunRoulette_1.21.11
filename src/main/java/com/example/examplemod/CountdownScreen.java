@@ -1,13 +1,17 @@
 package com.example.examplemod;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 
 public class CountdownScreen extends Screen {
     private int countdownTicks = 0;
-    private static final int TICKS_PER_NUMBER = 20; // 1 second per number
+    private static final int TICKS_PER_NUMBER = 20;
+    private static final int TOTAL_TICKS = TICKS_PER_NUMBER * 4;
     private static final String[] COUNTDOWN_TEXTS = {"3", "2", "1"};
     private final Runnable onComplete;
 
@@ -24,10 +28,42 @@ public class CountdownScreen extends Screen {
     public void tick() {
         super.tick();
         countdownTicks++;
+        preloadChunks();
 
-        if (countdownTicks >= TICKS_PER_NUMBER * 4) {
+        if (countdownTicks >= TOTAL_TICKS) {
             this.onComplete.run();
             this.onClose();
+        }
+    }
+
+    private void preloadChunks() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) return;
+
+        int playerCX = mc.player.getBlockX() >> 4;
+        int playerCZ = mc.player.getBlockZ() >> 4;
+        int maxRadius = Math.min(mc.options.renderDistance().get(), 12);
+        int currentRadius = Math.max(1, (int) Math.ceil((double) maxRadius * countdownTicks / TOTAL_TICKS));
+
+        MinecraftServer server = mc.getSingleplayerServer();
+        if (server != null) {
+            ServerLevel serverLevel = server.getLevel(mc.player.level().dimension());
+            if (serverLevel == null) return;
+            for (int dx = -currentRadius; dx <= currentRadius; dx++) {
+                for (int dz = -currentRadius; dz <= currentRadius; dz++) {
+                    if (dx * dx + dz * dz <= currentRadius * currentRadius) {
+                        serverLevel.getChunk(playerCX + dx, playerCZ + dz);
+                    }
+                }
+            }
+        } else {
+            for (int dx = -currentRadius; dx <= currentRadius; dx++) {
+                for (int dz = -currentRadius; dz <= currentRadius; dz++) {
+                    if (dx * dx + dz * dz <= currentRadius * currentRadius) {
+                        mc.level.getChunk(playerCX + dx, playerCZ + dz);
+                    }
+                }
+            }
         }
     }
 

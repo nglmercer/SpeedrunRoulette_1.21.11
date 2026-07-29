@@ -25,12 +25,12 @@ public class VictoryScreen extends Screen {
     private void initContinueButton() {
         int buttonWidth = 200;
         int buttonHeight = 20;
-        int startY = this.height - 40;
+        int y = this.height - 35;
 
         this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.continue"), (btn) -> {
             showOptions = true;
             rebuildWidgets();
-        }).bounds(this.width / 2 - buttonWidth / 2, startY, buttonWidth, buttonHeight).build());
+        }).bounds(this.width / 2 - buttonWidth / 2, y, buttonWidth, buttonHeight).build());
     }
 
     private void initOptionButtons() {
@@ -38,7 +38,8 @@ public class VictoryScreen extends Screen {
         int buttonHeight = 20;
         int spacing = 24;
         int buttonCount = 3;
-        int startY = this.height - (buttonCount * buttonHeight + (buttonCount - 1) * spacing) - 15;
+        int totalHeight = buttonCount * buttonHeight + (buttonCount - 1) * spacing;
+        int startY = this.height - totalHeight - 20;
 
         this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.retry_new_seed"), (btn) -> {
             if (isTransitionPending()) return;
@@ -89,10 +90,19 @@ public class VictoryScreen extends Screen {
 
         int centerX = this.width / 2;
         boolean singleplayer = SpeedrunState.isSingleplayer();
+
+        if (showOptions) {
+            renderOptionsView(g, centerX, singleplayer);
+        } else {
+            renderInfoView(g, centerX, singleplayer);
+        }
+    }
+
+    private void renderInfoView(GuiGraphics g, int centerX, boolean singleplayer) {
         int currentY = 20;
 
         g.drawCenteredString(this.font, Component.translatable("gui.examplemod.victory_title").withStyle(net.minecraft.ChatFormatting.BOLD, net.minecraft.ChatFormatting.GOLD), centerX, currentY, 0xFFD700);
-        currentY += 18;
+        currentY += 20;
 
         if (!singleplayer) {
             SpeedrunGameMode mode = SpeedrunState.getActiveGameMode();
@@ -105,8 +115,8 @@ public class VictoryScreen extends Screen {
                         centerX, currentY, 0xFFFFFF55);
                 currentY += 14;
             }
+            currentY += 6;
         }
-        currentY += 5;
 
         java.util.List<Objective> objs = SpeedrunState.getObjectives();
         net.minecraft.world.item.ItemStack icon = net.minecraft.world.item.ItemStack.EMPTY;
@@ -116,9 +126,9 @@ public class VictoryScreen extends Screen {
             Objective obj = objs.get(0);
             icon = obj.getIcon();
             if (objs.size() > 1) {
-                 objNameComp = Component.translatable("gui.examplemod.item_list", objs.size());
+                objNameComp = Component.translatable("gui.examplemod.item_list", objs.size());
             } else {
-                 objNameComp = obj.getDisplayName();
+                objNameComp = obj.getDisplayName();
             }
         } else if (SpeedrunRoulette.pendingVictoryObjectiveName != null) {
             objNameComp = Component.literal(SpeedrunRoulette.pendingVictoryObjectiveName);
@@ -126,59 +136,91 @@ public class VictoryScreen extends Screen {
 
         if (Config.END_SHOW_ICON.get() && !icon.isEmpty()) {
             float scale = 4.0f;
-            g.pose().translate((float)centerX, (float)(currentY + 32));
+            g.pose().translate((float) centerX, (float) (currentY + 32));
             g.pose().scale(scale, scale);
             g.pose().translate(-8.0f, -8.0f);
             g.renderItem(icon, 0, 0);
             g.pose().translate(8.0f, 8.0f);
-            g.pose().scale(1.0f/scale, 1.0f/scale);
-            g.pose().translate(-(float)centerX, -(float)(currentY + 32));
+            g.pose().scale(1.0f / scale, 1.0f / scale);
+            g.pose().translate(-(float) centerX, -(float) (currentY + 32));
             currentY += 70;
         } else {
             currentY += 10;
         }
 
         g.drawCenteredString(this.font, objNameComp, centerX, currentY, 0xFFFFFFFF);
-        currentY += 15;
+        currentY += 18;
 
         String time = SpeedrunRoulette.pendingVictoryTime;
         if (time == null) time = "--:--";
 
         float timeScale = 2.0f;
-        g.pose().translate((float)centerX, (float)(currentY + 5));
+        g.pose().translate((float) centerX, (float) (currentY + 5));
         g.pose().scale(timeScale, timeScale);
         g.drawCenteredString(this.font, time, 0, 0, 0xFF55FF55);
-        g.pose().scale(1.0f/timeScale, 1.0f/timeScale);
-        g.pose().translate(-(float)centerX, -(float)(currentY + 5));
-        currentY += 30;
+        g.pose().scale(1.0f / timeScale, 1.0f / timeScale);
+        g.pose().translate(-(float) centerX, -(float) (currentY + 5));
+        currentY += 32;
 
         if (Config.END_SHOW_STATS.get()) {
+            currentY += 5;
             g.drawCenteredString(this.font, Component.translatable("gui.examplemod.statistics").withStyle(net.minecraft.ChatFormatting.UNDERLINE), centerX, currentY, 0xFFAAAAAA);
-            currentY += 15;
+            currentY += 14;
             g.drawCenteredString(this.font, Component.translatable("gui.examplemod.deaths", SpeedrunState.getDeathCount()), centerX, currentY, 0xFFFFFFFF);
             currentY += 12;
-            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.distance", (int)SpeedrunState.getTraveledMeters()), centerX, currentY, 0xFFFFFFFF);
+            g.drawCenteredString(this.font, Component.translatable("gui.examplemod.distance", (int) SpeedrunState.getTraveledMeters()), centerX, currentY, 0xFFFFFFFF);
             currentY += 12;
             g.drawCenteredString(this.font, Component.translatable("gui.examplemod.days", SpeedrunState.getDaysPlayed()), centerX, currentY, 0xFFFFFFFF);
             currentY += 12;
         }
 
         if (Config.END_SHOW_SPLITS.get()) {
-            currentY += 8;
             java.util.Map<String, String> splits = SpeedrunState.getSplits();
             if (!splits.isEmpty()) {
-                 g.drawCenteredString(this.font, Component.translatable("gui.examplemod.splits").withStyle(net.minecraft.ChatFormatting.UNDERLINE), centerX, currentY, 0xFFAAAAAA);
-                 currentY += 15;
-                 for (java.util.Map.Entry<String, String> entry : splits.entrySet()) {
-                     g.drawCenteredString(this.font, entry.getKey() + ": " + entry.getValue(), centerX, currentY, 0xFFDDDDDD);
-                     currentY += 12;
-                 }
+                currentY += 8;
+                g.drawCenteredString(this.font, Component.translatable("gui.examplemod.splits").withStyle(net.minecraft.ChatFormatting.UNDERLINE), centerX, currentY, 0xFFAAAAAA);
+                currentY += 14;
+                for (java.util.Map.Entry<String, String> entry : splits.entrySet()) {
+                    g.drawCenteredString(this.font, entry.getKey() + ": " + entry.getValue(), centerX, currentY, 0xFFDDDDDD);
+                    currentY += 12;
+                }
             }
         }
     }
 
+    private void renderOptionsView(GuiGraphics g, int centerX, boolean singleplayer) {
+        int currentY = 25;
+
+        g.drawCenteredString(this.font, Component.translatable("gui.examplemod.victory_title").withStyle(net.minecraft.ChatFormatting.BOLD, net.minecraft.ChatFormatting.GOLD), centerX, currentY, 0xFFD700);
+        currentY += 22;
+
+        java.util.List<Objective> objs = SpeedrunState.getObjectives();
+        Component objNameComp = Component.translatable("gui.examplemod.unknown_objective");
+        if (objs != null && !objs.isEmpty()) {
+            if (objs.size() > 1) {
+                objNameComp = Component.translatable("gui.examplemod.item_list", objs.size());
+            } else {
+                objNameComp = objs.get(0).getDisplayName();
+            }
+        } else if (SpeedrunRoulette.pendingVictoryObjectiveName != null) {
+            objNameComp = Component.literal(SpeedrunRoulette.pendingVictoryObjectiveName);
+        }
+
+        g.drawCenteredString(this.font, objNameComp, centerX, currentY, 0xFFFFFFFF);
+        currentY += 16;
+
+        String time = SpeedrunRoulette.pendingVictoryTime;
+        if (time == null) time = "--:--";
+
+        float timeScale = 1.75f;
+        g.pose().translate((float) centerX, (float) (currentY + 5));
+        g.pose().scale(timeScale, timeScale);
+        g.drawCenteredString(this.font, time, 0, 0, 0xFF55FF55);
+        g.pose().scale(1.0f / timeScale, 1.0f / timeScale);
+        g.pose().translate(-(float) centerX, -(float) (currentY + 5));
+    }
+
     @Override
     public void renderBackground(GuiGraphics guiGraphics, int i, int j, float f) {
-        // Do nothing, we handle background in render()
     }
 }

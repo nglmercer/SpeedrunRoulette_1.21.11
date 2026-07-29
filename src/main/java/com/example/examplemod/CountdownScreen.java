@@ -4,9 +4,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.ChatFormatting;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 
 public class CountdownScreen extends Screen {
     private int countdownTicks = 0;
@@ -14,6 +11,8 @@ public class CountdownScreen extends Screen {
     private static final int TOTAL_TICKS = TICKS_PER_NUMBER * 4;
     private static final String[] COUNTDOWN_TEXTS = {"3", "2", "1"};
     private final Runnable onComplete;
+    private double lastMouseX = -1;
+    private double lastMouseY = -1;
 
     public CountdownScreen(Runnable onComplete) {
         super(Component.empty());
@@ -28,7 +27,6 @@ public class CountdownScreen extends Screen {
     public void tick() {
         super.tick();
         countdownTicks++;
-        preloadChunks();
 
         if (countdownTicks >= TOTAL_TICKS) {
             this.onComplete.run();
@@ -36,40 +34,20 @@ public class CountdownScreen extends Screen {
         }
     }
 
-    private void preloadChunks() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.level == null) return;
-
-        int playerCX = mc.player.getBlockX() >> 4;
-        int playerCZ = mc.player.getBlockZ() >> 4;
-        int maxRadius = Math.min(mc.options.renderDistance().get(), 12);
-        int currentRadius = Math.max(1, (int) Math.ceil((double) maxRadius * countdownTicks / TOTAL_TICKS));
-
-        MinecraftServer server = mc.getSingleplayerServer();
-        if (server != null) {
-            ServerLevel serverLevel = server.getLevel(mc.player.level().dimension());
-            if (serverLevel == null) return;
-            for (int dx = -currentRadius; dx <= currentRadius; dx++) {
-                for (int dz = -currentRadius; dz <= currentRadius; dz++) {
-                    if (dx * dx + dz * dz <= currentRadius * currentRadius) {
-                        serverLevel.getChunk(playerCX + dx, playerCZ + dz);
-                    }
-                }
-            }
-        } else {
-            for (int dx = -currentRadius; dx <= currentRadius; dx++) {
-                for (int dz = -currentRadius; dz <= currentRadius; dz++) {
-                    if (dx * dx + dz * dz <= currentRadius * currentRadius) {
-                        mc.level.getChunk(playerCX + dx, playerCZ + dz);
-                    }
-                }
-            }
-        }
-    }
-
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        this.renderTransparentBackground(guiGraphics);
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null) {
+            if (lastMouseX >= 0) {
+                double dx = mouseX - lastMouseX;
+                double dy = mouseY - lastMouseY;
+                if (dx != 0 || dy != 0) {
+                    mc.player.turn(dx * 8.0, dy * 8.0);
+                }
+            }
+            lastMouseX = mouseX;
+            lastMouseY = mouseY;
+        }
 
         int phase = countdownTicks / TICKS_PER_NUMBER;
         String text;
@@ -92,12 +70,15 @@ public class CountdownScreen extends Screen {
         guiGraphics.drawCenteredString(this.font, text, 0, -4, color);
         guiGraphics.pose().scale(1.0f / scale, 1.0f / scale);
         guiGraphics.pose().translate(-x, -y);
-
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
     @Override
     public boolean isPauseScreen() {
+        return false;
+    }
+
+    @Override
+    public boolean shouldCloseOnEsc() {
         return false;
     }
 
@@ -108,6 +89,6 @@ public class CountdownScreen extends Screen {
             this.onClose();
             return true;
         }
-        return false;
+        return true;
     }
 }

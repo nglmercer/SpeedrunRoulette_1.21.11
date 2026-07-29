@@ -75,6 +75,7 @@
   "gui.examplemod.hud_config.preview_objective": "Цель: Пример",
   "gui.examplemod.yes": "ДА",
   "gui.examplemod.no": "НЕТ",
+  "gui.examplemod.continue": "Продолжить",
   "gui.examplemod.on": "ВКЛ",
   "gui.examplemod.off": "ВЫКЛ",
   "gui.examplemod.objectives_active": "Спидран: Цели активны!",

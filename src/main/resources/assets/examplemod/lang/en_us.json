@@ -104,6 +104,7 @@
   "gui.examplemod.end_config.preview.lose": "Defeat",
   "gui.examplemod.yes": "YES",
   "gui.examplemod.no": "NO",
+  "gui.examplemod.continue": "Continue",
   "gui.examplemod.on": "ON",
   "gui.examplemod.off": "OFF",
   "gui.examplemod.objectives_active": "Speedrun: Objectives active!",

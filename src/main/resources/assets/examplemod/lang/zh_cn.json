@@ -75,6 +75,7 @@
   "gui.examplemod.hud_config.preview_objective": "目标：示例",
   "gui.examplemod.yes": "是",
   "gui.examplemod.no": "否",
+  "gui.examplemod.continue": "继续",
   "gui.examplemod.on": "开",
   "gui.examplemod.off": "关",
   "gui.examplemod.objectives_active": "速通：目标已激活！",

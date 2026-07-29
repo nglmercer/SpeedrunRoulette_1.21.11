@@ -75,6 +75,7 @@
   "gui.examplemod.hud_config.preview_objective": "Objectif : Exemple",
   "gui.examplemod.yes": "OUI",
   "gui.examplemod.no": "NON",
+  "gui.examplemod.continue": "Continuer",
   "gui.examplemod.on": "ON",
   "gui.examplemod.off": "OFF",
   "gui.examplemod.objectives_active": "Speedrun : Objectifs actifs !",

@@ -75,6 +75,7 @@
   "gui.examplemod.hud_config.preview_objective": "Objetivo: Exemplo",
   "gui.examplemod.yes": "SIM",
   "gui.examplemod.no": "NÃO",
+  "gui.examplemod.continue": "Continuar",
   "gui.examplemod.on": "LIGADO",
   "gui.examplemod.off": "DESLIGADO",
   "gui.examplemod.objectives_active": "Speedrun: Objetivos ativos!",

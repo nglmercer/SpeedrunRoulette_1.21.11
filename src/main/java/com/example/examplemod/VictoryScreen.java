@@ -88,20 +88,23 @@ public class VictoryScreen extends Screen {
         super.render(g, mouseX, mouseY, partialTick);
 
         int centerX = this.width / 2;
+        boolean singleplayer = SpeedrunState.isSingleplayer();
         int currentY = 20;
 
         g.drawCenteredString(this.font, Component.translatable("gui.examplemod.victory_title").withStyle(net.minecraft.ChatFormatting.BOLD, net.minecraft.ChatFormatting.GOLD), centerX, currentY, 0xFFD700);
         currentY += 18;
 
-        SpeedrunGameMode mode = SpeedrunState.getActiveGameMode();
-        g.drawCenteredString(this.font, mode.displayName(), centerX, currentY, 0xFF55FFFF);
-        currentY += 14;
-        String winner = SpeedrunState.getLastWinnerName();
-        if (winner != null && !winner.isEmpty()) {
-            g.drawCenteredString(this.font,
-                    Component.translatable("gui.examplemod.winner_label", winner).withStyle(net.minecraft.ChatFormatting.YELLOW),
-                    centerX, currentY, 0xFFFFFF55);
+        if (!singleplayer) {
+            SpeedrunGameMode mode = SpeedrunState.getActiveGameMode();
+            g.drawCenteredString(this.font, mode.displayName(), centerX, currentY, 0xFF55FFFF);
             currentY += 14;
+            String winner = SpeedrunState.getLastWinnerName();
+            if (winner != null && !winner.isEmpty()) {
+                g.drawCenteredString(this.font,
+                        Component.translatable("gui.examplemod.winner_label", winner).withStyle(net.minecraft.ChatFormatting.YELLOW),
+                        centerX, currentY, 0xFFFFFF55);
+                currentY += 14;
+            }
         }
         currentY += 5;
 

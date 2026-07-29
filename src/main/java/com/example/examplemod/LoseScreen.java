@@ -96,22 +96,22 @@ public class LoseScreen extends Screen {
         super.render(g, mouseX, mouseY, partialTick);
 
         int centerX = this.width / 2;
-        int currentY = 30;
+        int currentY = 25;
 
         g.drawCenteredString(this.font,
                 Component.translatable("gui.examplemod.defeat_title").withStyle(ChatFormatting.BOLD, ChatFormatting.RED),
                 centerX, currentY, 0xFFFF5555);
-        currentY += 30;
+        currentY += 22;
 
         g.drawCenteredString(this.font,
                 Component.translatable("gui.examplemod.defeat_subtitle"),
                 centerX, currentY, 0xFFFFFFFF);
-        currentY += 25;
+        currentY += 18;
 
         g.drawCenteredString(this.font,
                 Component.translatable("gui.examplemod.winner_label", winnerName).withStyle(ChatFormatting.GOLD),
                 centerX, currentY, 0xFFFFD700);
-        currentY += 20;
+        currentY += 16;
 
         float timeScale = 1.75f;
         g.pose().translate((float) centerX, (float) (currentY + 5));
@@ -119,9 +119,8 @@ public class LoseScreen extends Screen {
         g.drawCenteredString(this.font, finishTime, 0, 0, 0xFFFF5555);
         g.pose().scale(1.0f / timeScale, 1.0f / timeScale);
         g.pose().translate(-(float) centerX, -(float) (currentY + 5));
-        currentY += 35;
+        currentY += 28;
 
-        // Objectives summary
         java.util.List<Objective> objs = SpeedrunState.getObjectives();
         if (objs != null && !objs.isEmpty()) {
             Component objName;
@@ -133,7 +132,7 @@ public class LoseScreen extends Screen {
             g.drawCenteredString(this.font,
                     Component.translatable("gui.examplemod.objective_label").append(" ").append(objName),
                     centerX, currentY, 0xFFAAAAAA);
-            currentY += 20;
+            currentY += 16;
         }
 
         g.drawCenteredString(this.font,

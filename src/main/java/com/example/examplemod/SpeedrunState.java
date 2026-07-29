@@ -75,6 +75,11 @@ public class SpeedrunState {
         return lastWinnerName;
     }
 
+    public static boolean isSingleplayer() {
+        Minecraft mc = Minecraft.getInstance();
+        return mc.getSingleplayerServer() != null;
+    }
+
     /**
      * Apply full run state from the server (multiplayer join / objective broadcast).
      */

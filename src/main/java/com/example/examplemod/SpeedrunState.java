@@ -23,6 +23,7 @@ public class SpeedrunState {
     private static String lastWinnerName = "";
     private static String lastWinnerUuid = "";
     private static boolean finishClaimPending = false;
+    private static int finishClaimWaitTicks = 0;
 
     private static boolean waitingForServerStop = false;
     private static String disconnectLabel = "";
@@ -38,13 +39,14 @@ public class SpeedrunState {
 
     public static void setObjectives(List<Objective> objs, boolean save) {
         if (objs == null) return;
-        objectives = objs;
+        objectives = new ArrayList<>(objs);
         objectivesFresh = true;
         objectivesCompleted = false;
         objectivesLoaded = true;
         autoOpenDelayTicks = 0;
         runFinished = false;
         finishClaimPending = false;
+        finishClaimWaitTicks = 0;
         lastWinnerName = "";
         lastWinnerUuid = "";
         if (Config.AUTO_START.get() && !objs.isEmpty()) {
@@ -191,6 +193,7 @@ public class SpeedrunState {
         autoOpenDelayTicks = 0;
         runFinished = false;
         finishClaimPending = false;
+        finishClaimWaitTicks = 0;
         lastWinnerName = "";
         lastWinnerUuid = "";
         SpeedrunObjectiveStorage.clear();
@@ -233,6 +236,8 @@ public class SpeedrunState {
             }
             objectivesLoaded = true;
             autoOpenDelayTicks = 0;
+            runFinished = false;
+            finishClaimPending = false;
         } else {
             List<Objective> persisted = SpeedrunObjectiveStorage.load();
             if (!persisted.isEmpty()) {
@@ -243,6 +248,8 @@ public class SpeedrunState {
                 objectivesLoaded = true;
                 autoOpenDelayTicks = 0;
             }
+            runFinished = false;
+            finishClaimPending = false;
         }
     }
 
@@ -261,6 +268,9 @@ public class SpeedrunState {
         SpeedrunSplits.reset();
         objectivesFresh = true;
         objectivesLoaded = false;
+        objectivesCompleted = false;
+        runFinished = false;
+        finishClaimPending = false;
         SpeedrunRoulette.LOGGER.info("[Retry] Prepared for retry — objectives will reload from world data");
     }
 
@@ -590,6 +600,15 @@ public class SpeedrunState {
         if (mc.level == null || mc.player == null) return;
         if (mc.player.connection == null) return;
 
+        if (finishClaimPending) {
+            finishClaimWaitTicks++;
+            if (finishClaimWaitTicks > 100) {
+                SpeedrunRoulette.LOGGER.warn("[Finish] Claim timeout after {} ticks — resetting finishClaimPending", finishClaimWaitTicks);
+                finishClaimPending = false;
+                finishClaimWaitTicks = 0;
+            }
+        }
+
         if (mc.player != null) {
             SpeedrunTimer.trackPlayerStats();
 
@@ -605,6 +624,7 @@ public class SpeedrunState {
                     // Multiplayer / LAN: server decides winner so challenge races stay fair.
                     // Integrated host resolves on the server thread so LAN guests get the result.
                     finishClaimPending = true;
+                    finishClaimWaitTicks = 0;
                     SpeedrunRoulette.pendingVictoryTime = time;
 
                     if (objectives != null && !objectives.isEmpty()) {

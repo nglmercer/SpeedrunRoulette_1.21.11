@@ -11,6 +11,7 @@ import java.util.Map;
 
 public class SpeedrunState {
     private static List<Objective> objectives = new ArrayList<>();
+    private static List<Objective> objectivesBackup = null;
     private static boolean objectivesCompleted = false;
     private static boolean objectivesFresh = false;
     private static boolean objectivesLoaded = false;
@@ -178,6 +179,7 @@ public class SpeedrunState {
 
     public static void clearObjectives() {
         objectives = new ArrayList<>();
+        objectivesBackup = null;
         objectivesCompleted = false;
         objectivesLoaded = true;
         autoOpenDelayTicks = 0;
@@ -198,6 +200,18 @@ public class SpeedrunState {
     public static void loadObjectivesFromWorld() {
         Minecraft mc = Minecraft.getInstance();
         net.minecraft.server.MinecraftServer server = mc.getSingleplayerServer();
+
+        if (objectivesBackup != null && !objectivesBackup.isEmpty()) {
+            SpeedrunRoulette.LOGGER.info("[LoadObjectives] Restoring {} objectives from backup (retry new seed)", objectivesBackup.size());
+            objectives = new ArrayList<>(objectivesBackup);
+            objectivesBackup = null;
+            objectivesFresh = true;
+            objectivesCompleted = false;
+            objectivesLoaded = true;
+            autoOpenDelayTicks = 0;
+            return;
+        }
+
         if (server != null) {
             SpeedrunWorldData data = SpeedrunWorldData.get(server);
             List<Objective> saved = data.getObjectives();
@@ -389,7 +403,8 @@ public class SpeedrunState {
             SpeedrunAutoNav.autoTriggerCreateWorld = false;
             SpeedrunAutoNav.resetProgress();
         } else if (startingRetryNewSeed) {
-            SpeedrunRoulette.LOGGER.info("TitleScreen: Preparing for Retry New Seed");
+            SpeedrunRoulette.LOGGER.info("TitleScreen: Preparing for Retry New Seed — preserving {} objectives", objectives.size());
+            objectivesBackup = new ArrayList<>(objectives);
             SpeedrunTimer.reset();
             SpeedrunSplits.reset();
             objectivesFresh = true;
@@ -479,12 +494,13 @@ public class SpeedrunState {
         }
 
         boolean hasObjs = !objectives.isEmpty();
-        SpeedrunRoulette.LOGGER.info("[AutoOpen] objectivesLoaded={}, hasObjs={}, fresh={}",
-            objectivesLoaded, hasObjs, objectivesFresh);
+        SpeedrunRoulette.LOGGER.info("[AutoOpen] objectivesLoaded={}, hasObjs={}, fresh={}, backup={}",
+            objectivesLoaded, hasObjs, objectivesFresh, objectivesBackup != null);
 
         if (hasObjs && objectivesFresh) {
             saveObjectivesToWorld();
             objectivesFresh = false;
+            objectivesBackup = null;
         }
 
         if (!hasObjs) {

@@ -10,6 +10,7 @@ import java.util.List;
 
 public class ReminderScreen extends Screen {
     private boolean showRetryConfirm = false;
+    private boolean showNewGameConfirm = false;
 
     public ReminderScreen() {
         super(Component.translatable("gui.examplemod.objectives_reminder"));
@@ -19,6 +20,8 @@ public class ReminderScreen extends Screen {
     protected void init() {
         if (showRetryConfirm) {
             initRetryConfirmButtons();
+        } else if (showNewGameConfirm) {
+            initNewGameConfirmButtons();
         } else {
             initMainButtons();
         }
@@ -34,11 +37,9 @@ public class ReminderScreen extends Screen {
             rebuildWidgets();
         }).bounds(this.width / 2 - buttonWidth / 2, startY, buttonWidth, buttonHeight).build());
 
-        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.give_up"), (button) -> {
-            if (isTransitionPending()) return;
-            button.active = false;
-            SpeedrunRoulette.LOGGER.info("New Objectives clicked.");
-            SpeedrunState.beginNewRunAndDisconnect();
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.new_game"), (button) -> {
+            showNewGameConfirm = true;
+            rebuildWidgets();
         }).bounds(this.width / 2 - buttonWidth / 2, startY + 24, buttonWidth, buttonHeight).build());
 
         this.addRenderableWidget(Button.builder(CommonComponents.GUI_BACK, (button) -> {
@@ -71,6 +72,24 @@ public class ReminderScreen extends Screen {
         }).bounds(this.width / 2 - buttonWidth / 2, startY + 48, buttonWidth, buttonHeight).build());
     }
 
+    private void initNewGameConfirmButtons() {
+        int buttonWidth = 200;
+        int buttonHeight = 20;
+        int startY = this.height - 80;
+
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.confirm_new_game"), (button) -> {
+            if (isTransitionPending()) return;
+            button.active = false;
+            SpeedrunRoulette.LOGGER.info("New Game confirmed — creating new world.");
+            SpeedrunState.beginNewRunAndDisconnect();
+        }).bounds(this.width / 2 - buttonWidth / 2, startY, buttonWidth, buttonHeight).build());
+
+        this.addRenderableWidget(Button.builder(CommonComponents.GUI_BACK, (button) -> {
+            showNewGameConfirm = false;
+            rebuildWidgets();
+        }).bounds(this.width / 2 - buttonWidth / 2, startY + 24, buttonWidth, buttonHeight).build());
+    }
+
     private static boolean isTransitionPending() {
         return SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun
             || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingRetryNewSeed
@@ -82,6 +101,11 @@ public class ReminderScreen extends Screen {
         if (keyEvent.key() == 256) {
             if (showRetryConfirm) {
                 showRetryConfirm = false;
+                rebuildWidgets();
+                return true;
+            }
+            if (showNewGameConfirm) {
+                showNewGameConfirm = false;
                 rebuildWidgets();
                 return true;
             }
@@ -97,6 +121,8 @@ public class ReminderScreen extends Screen {
 
         Component titleText = showRetryConfirm
             ? Component.translatable("gui.examplemod.retry_confirm_title")
+            : showNewGameConfirm
+            ? Component.translatable("gui.examplemod.new_game_confirm_title")
             : this.title;
         guiGraphics.drawCenteredString(this.font, titleText, this.width / 2, 20, 0xFFFFFFFF);
 

@@ -7,52 +7,72 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.client.gui.components.Button;
 
 public class VictoryScreen extends Screen {
+    private boolean showOptions = false;
+
     public VictoryScreen() {
         super(Component.translatable("gui.examplemod.victory"));
     }
 
     @Override
     protected void init() {
+        if (showOptions) {
+            initOptionButtons();
+        } else {
+            initContinueButton();
+        }
+    }
+
+    private void initContinueButton() {
         int buttonWidth = 200;
         int buttonHeight = 20;
-        int spacing = 22;
-        boolean singleplayer = Minecraft.getInstance().getSingleplayerServer() != null;
+        int startY = this.height - 40;
 
-        int buttonCount = singleplayer ? 5 : 2;
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.continue"), (btn) -> {
+            showOptions = true;
+            rebuildWidgets();
+        }).bounds(this.width / 2 - buttonWidth / 2, startY, buttonWidth, buttonHeight).build());
+    }
+
+    private void initOptionButtons() {
+        int buttonWidth = 200;
+        int buttonHeight = 20;
+        int spacing = 24;
+        int buttonCount = 3;
         int startY = this.height - (buttonCount * buttonHeight + (buttonCount - 1) * spacing) - 15;
 
-        if (singleplayer) {
-            this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.retry_same_seed"), (btn) -> {
-                SpeedrunState.saveRunInfo(true);
-                SpeedrunState.beginRetryAndDisconnect();
-            }).bounds(this.width / 2 - buttonWidth / 2, startY, buttonWidth, buttonHeight).build());
-
-            this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.retry_new_seed"), (btn) -> {
-                SpeedrunState.saveRunInfo(true);
-                SpeedrunState.beginRetryNewSeedAndDisconnect();
-            }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing, buttonWidth, buttonHeight).build());
-
-            this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.new_run"), (btn) -> {
-                SpeedrunState.saveRunInfo(true);
-                SpeedrunState.beginNewRunAndDisconnect();
-            }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * 2, buttonWidth, buttonHeight).build());
-        }
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.retry_new_seed"), (btn) -> {
+            if (isTransitionPending()) return;
+            btn.active = false;
+            SpeedrunState.saveRunInfo(true);
+            SpeedrunState.beginRetryNewSeedAndDisconnect();
+        }).bounds(this.width / 2 - buttonWidth / 2, startY, buttonWidth, buttonHeight).build());
 
         this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.main_menu"), (btn) -> {
+            if (isTransitionPending()) return;
+            btn.active = false;
             SpeedrunState.saveRunInfo(true);
             SpeedrunState.beginMainMenuAndDisconnect();
-        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * (singleplayer ? 3 : 0), buttonWidth, buttonHeight).build());
+        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing, buttonWidth, buttonHeight).build());
 
         this.addRenderableWidget(Button.builder(Component.translatable("gui.examplemod.stay_in_game"), (btn) -> {
             this.onClose();
-        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * (singleplayer ? 4 : 1), buttonWidth, buttonHeight).build());
+        }).bounds(this.width / 2 - buttonWidth / 2, startY + spacing * 2, buttonWidth, buttonHeight).build());
     }
 
-
+    private static boolean isTransitionPending() {
+        return SpeedrunRoulette.pendingGiveUp || SpeedrunRoulette.pendingNewRun
+            || SpeedrunRoulette.pendingReplay || SpeedrunRoulette.pendingRetryNewSeed
+            || SpeedrunRoulette.pendingReset || SpeedrunRoulette.pendingMainMenu;
+    }
 
     @Override
     public boolean keyPressed(net.minecraft.client.input.KeyEvent keyEvent) {
-        if (keyEvent.key() == 256) { // ESCAPE
+        if (keyEvent.key() == 256) {
+            if (showOptions) {
+                showOptions = false;
+                rebuildWidgets();
+                return true;
+            }
             this.onClose();
             return true;
         }
